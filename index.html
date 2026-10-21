@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#1e293b" />
+<title>3D 选号助手</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f1f5f9; min-height: 100vh; display: flex; justify-content: center; }
+.app { width: 100%; max-width: 520px; background: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+.header { background: linear-gradient(135deg, #312e81, #4338ca); color: #fff; padding: 20px 16px; position: sticky; top: 0; z-index: 10; }
+.header h1 { font-size: 18px; font-weight: 600; }
+.header p { font-size: 12px; opacity: .75; margin-top: 4px; }
+.main { flex: 1; padding: 14px; overflow-y: auto; }
+.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.card h2 { font-size: 14px; color: #334155; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+label { font-size: 13px; color: #475569; min-width: 58px; }
+input, select { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: #f8fafc; }
+input:focus, select:focus { outline: none; border-color: #6366f1; background: #fff; }
+.btn { display: inline-block; padding: 10px 18px; background: #4f46e5; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; }
+.btn:active { background: #4338ca; }
+.btn.ghost { background: #eef2ff; color: #4f46e5; }
+.num-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
+.num-chip { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; font-size: 20px; font-weight: 700; color: #1e293b; }
+.num-chip.hit { background: #4f46e5; color: #fff; }
+.num-chip.avoid { background: #fee2e2; color: #b91c1c; text-decoration: line-through; }
+.rec-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.rec-item { padding: 8px 14px; background: #eef2ff; border-radius: 10px; font-size: 18px; font-weight: 700; color: #4338ca; letter-spacing: 2px; }
+.rec-item .tag { display: block; font-size: 10px; font-weight: 400; color: #6366f1; letter-spacing: 0; margin-top: 2px; }
+.cost { margin-top: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: #475569; display: flex; justify-content: space-between; }
+.cost b { color: #dc2626; font-size: 15px; }
+.tip { font-size: 11px; color: #94a3b8; margin-top: 10px; line-height: 1.6; }
+.section-title { font-size: 12px; color: #94a3b8; margin: 14px 0 8px; }
+input[type=number] { -moz-appearance: textfield; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>🎱 3D 选号助手</h1>
+    <p>固定策略 · 每日推荐 · 纯本地计算</p>
+  </div>
+  <div class="main">
+    <div class="card">
+      <h2>📋 固定策略（自动保存）</h2>
+      <div class="row">
+        <label>玩法</label>
+        <select id="playType">
+          <option value="zhixuan">直选</option>
+          <option value="zu3">组三</option>
+          <option value="zu6">组六</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>单注金额</label>
+        <input type="number" id="betSize" min="1" value="2" />
+        <label style="min-width:auto">元</label>
+      </div>
+      <div class="row">
+        <label>必含数字</label>
+        <input type="text" id="mustInclude" placeholder="如 3 7（空格分隔）" />
+      </div>
+      <div class="row">
+        <label>排除数字</label>
+        <input type="text" id="avoid" placeholder="如 0 9（空格分隔）" />
+      </div>
+      <div class="row">
+        <label>和值范围</label>
+        <input type="number" id="sumMin" placeholder="最小" min="0" max="27" />
+        <input type="number" id="sumMax" placeholder="最大" min="0" max="27" style="max-width:70px" />
+      </div>
+      <div class="row">
+        <label>奇数个数</label>
+        <input type="text" id="oddEven" placeholder="如 1-2（留空不限）" />
+      </div>
+      <div class="row">
+        <label>跨度范围</label>
+        <input type="number" id="spanMin" placeholder="最小" min="0" max="9" />
+        <input type="number" id="spanMax" placeholder="最大" min="0" max="9" style="max-width:70px" />
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="saveBtn">保存策略</button>
+        <button class="btn ghost" id="genBtn">生成今日推荐</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔢 试机号参考（手动录入）</h2>
+      <div class="row">
+        <label>今日试机号</label>
+        <input type="text" id="testNum" maxlength="3" placeholder="3 位数字，如 528" />
+      </div>
+      <p class="tip">试机号是每期开奖前试机产生的号码，很多彩民用它做参考。填入后推荐会向试机号数字倾斜（加权）。</p>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none">
+      <h2>✨ 今日推荐</h2>
+      <div class="rec-list" id="recList"></div>
+      <div class="cost">
+        <span id="recCount"></span>
+        <span>合计 <b id="recCost"></b></span>
+      </div>
+      <p class="tip">⚠️ 3D 开奖是独立随机事件，推荐仅供选号参考，请理性购彩，量力而行。</p>
+    </div>
+
+    <div class="card">
+      <h2>ℹ️ 关于</h2>
+      <p class="tip" style="font-size:12px">
+        本工具为纯前端本地计算，不调用任何服务器接口。<br/>
+        推荐逻辑：按你的固定策略规则从 000-999 中筛选，试机号数字加权提高出现概率。<br/>
+        规则调整请改上方策略区并点"保存策略"。
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const KEYS = ['playType','betSize','mustInclude','avoid','sumMin','sumMax','oddEven','spanMin','spanMax','testNum'];
+
+function loadState() {
+  KEYS.forEach(k => {
+    const v = localStorage.getItem('lotto_' + k);
+    if (v !== null && $(k)) $(k).value = v;
+  });
+}
+function saveState() {
+  KEYS.forEach(k => {
+    if ($(k)) localStorage.setItem('lotto_' + k, $(k).value);
+  });
+}
+function parseDigits(v) {
+  return (v || '').split(/[^0-9]/).filter(c => c !== '').map(Number);
+}
+function parseRange(minV, maxV, dmax) {
+  const a = (minV || "").trim();
+  const b = (maxV || "").trim();
+  if (!a && !b) return null;
+  if (a && !b) return [parseInt(a, 10), dmax];
+  if (!a) return [0, parseInt(b, 10)];
+  return [parseInt(a, 10), parseInt(b, 10)];
+}
+function genRecommend() {
+  saveState();
+  const playType = $('playType').value;
+  const betSize = Math.max(1, parseInt($('betSize').value, 10) || 2);
+  const must = parseDigits($('mustInclude').value);
+  const avoid = parseDigits($('avoid').value);
+  const sumRange = parseRange($('sumMin').value, $('sumMax').value, 27);
+  const oddRange = parseRange($('oddEven').value, '', 3);
+  const spanRange = parseRange($('spanMin').value, $('spanMax').value, 9);
+  const testDigits = parseDigits($('testNum').value);
+
+  const inRange = (v, r) => !r || (v >= r[0] && v <= r[1]);
+  const candidates = [];
+  for (let n = 0; n < 1000; n++) {
+    const d = [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10];
+    if (avoid.some(a => d.includes(a))) continue;
+    if (must.length && !must.every(m => d.includes(m))) continue;
+    const sum = d[0] + d[1] + d[2];
+    if (!inRange(sum, sumRange)) continue;
+    const odd = d.filter(x => x % 2 === 1).length;
+    if (!inRange(odd, oddRange)) continue;
+    const span = Math.max(...d) - Math.min(...d);
+    if (!inRange(span, spanRange)) continue;
+    // 试机号加权：命中试机号数字越多权重越高
+    let w = 1 + testDigits.filter(t => d.includes(t)).length * 1.5;
+    candidates.push({ n, d, w });
+  }
+
+  // 加权随机抽 10 注
+  const picks = [];
+  const MAX_PICKS = 10;
+  let guard = 0;
+  while (picks.length < MAX_PICKS && candidates.length > 0 && guard < 20000) {
+    guard++;
+    const total = candidates.reduce((s, c) => s + c.w, 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (let i = 0; i < candidates.length; i++) {
+      r -= candidates[i].w;
+      if (r <= 0) { idx = i; break; }
+    }
+    picks.push(candidates[idx].n);
+    candidates.splice(idx, 1);
+  }
+
+  const shown = picks.slice(0, 10);
+  const recList = $('recList');
+  recList.innerHTML = '';
+  shown.forEach(n => {
+    const s = String(n).padStart(3, '0');
+    const el = document.createElement('div');
+    el.className = 'rec-item';
+    el.textContent = s;
+    recList.appendChild(el);
+  });
+  $('recCount').textContent = '共 ' + shown.length + ' 注 · 玩法：' + $('playType').selectedOptions[0].text;
+  $('recCost').textContent = (shown.length * betSize) + ' 元';
+  $('resultCard').style.display = '';
+}
+
+$('saveBtn').onclick = () => { saveState(); alert('策略已保存（本机）'); };
+$('genBtn').onclick = genRecommend;
+loadState();
+</script>
+</body>
+</html>
