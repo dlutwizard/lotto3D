@@ -155,7 +155,7 @@ input[type=date] { max-width: 165px; }
     <!-- 投注记录 -->
     <div class="card">
       <h2>📝 投注记录</h2>
-      <p class="tip" style="margin: -4px 0 8px">按日期记录，数据自动保存在本机</p>
+        <p class="tip" style="margin: -4px 0 8px">按日期记录，21:15 后刷新默认切到次日</p>
       <div class="row">
         <label>日期</label>
         <input type="date" id="betDate" />
@@ -322,6 +322,14 @@ const DRAW_KEY = 'lotto_draws';
 function pad2(n) { return String(n).padStart(2, '0'); }
 function todayStr() {
   const d = new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+function defaultBetDate(now) {
+  now = now || new Date();
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (now.getHours() * 60 + now.getMinutes() >= 21 * 60 + 15) {
+    d.setDate(d.getDate() + 1);
+  }
   return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 }
 function parseDate(s) {
@@ -808,7 +816,7 @@ document.querySelectorAll('.tab').forEach(t => {
 });
 
 loadState();
-$('betDate').value = todayStr();
+$('betDate').value = defaultBetDate();
 $('drawDate').value = todayStr();
 const todayDraw = getDraws()[todayStr()];
 if (todayDraw) $('winNum').value = todayDraw;
