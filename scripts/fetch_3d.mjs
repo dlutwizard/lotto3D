@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 
-const SOURCE = 'https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=3d&issueCount=30';
+const SINA_SOURCE = 'https://lotto.sina.cn/trend/lotto_zst_proxy.d.json?lottoType=3d&actionType=chzs&type=50&sourceName=bd&callback=zst';
+const OFFICIAL_SOURCE = 'https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=3d&issueCount=30';
 const FILE = 'draws.json';
 const FORCE_FINAL = process.env.FORCE_FINAL === '1';
 
@@ -22,6 +23,11 @@ function chinaNow() {
   };
 }
 
+function weekdayOf(date) {
+  const p = date.split('-').map(Number);
+  return new Date(p[0], p[1] - 1, p[2]).getDay() || 7;
+}
+
 async function loadDraws() {
   try {
     const existing = JSON.parse(await fs.readFile(FILE, 'utf8'));
@@ -31,8 +37,57 @@ async function loadDraws() {
   }
 }
 
+function latestIssue(draws) {
+  let max = 0;
+  Object.values(draws).forEach(rec => {
+    const issue = Number(typeof rec === 'string' ? 0 : rec && rec.issue);
+    if (Number.isFinite(issue) && issue > max) max = issue;
+  });
+  return max;
+}
+
+function findIssueDate(draws, issue) {
+  return Object.keys(draws).find(date => {
+    const rec = draws[date];
+    return rec && String(rec.issue) === String(issue);
+  });
+}
+
+async function fetchSinaLatest() {
+  const response = await fetch(SINA_SOURCE, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
+      'Referer': 'https://lotto.sina.cn/',
+      'Accept': 'application/json,text/plain,*/*',
+    },
+  });
+  if (!response.ok) throw new Error('Sina HTTP ' + response.status);
+  const text = await response.text();
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('Unexpected Sina response');
+  const data = JSON.parse(text.slice(start, end + 1));
+  const html = data && data.result && data.result.data && data.result.data.data;
+  if (typeof html !== 'string') throw new Error('Sina HTML missing');
+
+  let best = null;
+  const rows = html.matchAll(/<tr class="hasbb">([\s\S]*?)<\/tr>/g);
+  for (const match of rows) {
+    const row = match[1];
+    const issueMatch = row.match(/<td>(\d{7})<\/td>/);
+    const fens = [...row.matchAll(/<td class="fen">([^<]+)<\/td>/g)].map(m => m[1].trim());
+    if (!issueMatch || fens.length < 2) continue;
+    const issue = Number(issueMatch[1]);
+    const weekday = Number(fens[0]);
+    const number = fens[1];
+    if (!/^\d{3}$/.test(number)) continue;
+    if (!best || issue > best.issue) best = { issue, weekday, number };
+  }
+  return best;
+}
+
 async function fetchOfficial() {
-  const response = await fetch(SOURCE, {
+  const response = await fetch(OFFICIAL_SOURCE, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (compatible; lotto3D-updater/1.0)',
       'Referer': 'https://www.cwl.gov.cn/',
@@ -47,7 +102,7 @@ async function fetchOfficial() {
   return data.result;
 }
 
-function mergeResults(result, draws) {
+function mergeOfficialResults(result, draws) {
   let changed = 0;
   for (const item of result) {
     const date = String(item.date || '').slice(0, 10);
@@ -68,7 +123,8 @@ async function saveDraws(draws) {
   );
   const payload = {
     updatedAt: new Date().toISOString(),
-    source: SOURCE,
+    source: SINA_SOURCE,
+    fallbackSource: OFFICIAL_SOURCE,
     draws: sorted,
   };
   await fs.writeFile(FILE, JSON.stringify(payload, null, 2) + '\n', 'utf8');
@@ -93,15 +149,42 @@ if (/^\d{3}$/.test(todayNumber || '')) {
   process.exit(0);
 }
 
-let result;
+let changed = 0;
+let sinaError = null;
 try {
-  result = await fetchOfficial();
+  const sina = await fetchSinaLatest();
+  if (sina) {
+    const existingDate = findIssueDate(draws, sina.issue);
+    const todayWeekday = weekdayOf(now.date);
+    if (existingDate) {
+      console.log('Sina latest issue ' + sina.issue + ' already stored for ' + existingDate + '.');
+    } else if (sina.issue > latestIssue(draws) && sina.weekday === todayWeekday) {
+      draws[now.date] = { issue: String(sina.issue), number: sina.number, source: 'sina' };
+      changed++;
+      console.log('Sina: today ' + now.date + ' issue ' + sina.issue + ' number ' + sina.number);
+    } else {
+      report('Sina latest issue ' + sina.issue + ' (weekday ' + sina.weekday + ') is not today ' + now.date + ' (weekday ' + todayWeekday + ').');
+    }
+  }
 } catch (err) {
-  report('Failed to fetch 3D results: ' + err.message);
-  process.exit(finalAttempt ? 1 : 0);
+  sinaError = err;
+  report('Sina fetch failed: ' + err.message);
 }
 
-const changed = mergeResults(result, draws);
+const stillMissing = !draws[now.date];
+if (stillMissing) {
+  try {
+    const official = await fetchOfficial();
+    const officialChanged = mergeOfficialResults(official, draws);
+    if (officialChanged > 0) {
+      changed += officialChanged;
+      console.log('Official fallback changed ' + officialChanged + ' draw days.');
+    }
+  } catch (err) {
+    report('Official fallback failed: ' + err.message);
+  }
+}
+
 if (changed > 0) {
   const total = await saveDraws(draws);
   console.log('Saved ' + total + ' draw days; changed ' + changed);
@@ -112,7 +195,7 @@ if (changed > 0) {
 const mergedToday = draws[now.date];
 const mergedNumber = typeof mergedToday === 'string' ? mergedToday : mergedToday && mergedToday.number;
 if (!/^\d{3}$/.test(mergedNumber || '')) {
-  report('No 3D draw result for ' + now.date + ' yet.');
+  report('No 3D draw result for ' + now.date + ' yet.' + (sinaError ? ' Sina error: ' + sinaError.message : ''));
   process.exit(finalAttempt ? 1 : 0);
 }
 
