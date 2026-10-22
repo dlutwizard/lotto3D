@@ -201,7 +201,7 @@ input[type=date] { max-width: 165px; }
         <button class="btn ghost" id="fetchDrawBtn" style="flex:1" type="button">自动获取开奖号</button>
         <button class="btn success" id="calcBtn" style="flex:1">保存并计算</button>
       </div>
-      <p class="tip" id="fetchStatus">每天 21:15 开奖，线上版本会在 21:40 左右自动更新</p>
+      <p class="tip" id="fetchStatus">每天 21:15 开奖，21:20-21:40 每 5 分钟自动获取一次</p>
       <div class="result-panel" id="resultPanel"></div>
     </div>
     </section>
@@ -487,6 +487,15 @@ function renderDayResult(date) {
 }
 
 let drawFetching = false;
+function drawDeadlinePassed() {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes() >= 21 * 60 + 40;
+}
+function inDrawFetchWindow() {
+  const now = new Date();
+  const minute = now.getHours() * 60 + now.getMinutes();
+  return minute >= 21 * 60 + 20 && minute <= 21 * 60 + 40;
+}
 async function fetchOfficialDraws(showFeedback) {
   if (drawFetching) return 0;
   drawFetching = true;
@@ -518,14 +527,18 @@ async function fetchOfficialDraws(showFeedback) {
     if (status) {
       status.textContent = today
         ? '✅ 已获取今日开奖号 ' + today
-        : '数据源暂无今日开奖号，可稍后重试或手动填写';
+        : drawDeadlinePassed()
+          ? '⚠️ 21:40 前未获取到今日开奖号，请手动填写'
+          : '数据源暂无今日开奖号，可稍后重试或手动填写';
     }
     return changed;
   } catch (err) {
     if (status) {
       status.textContent = location.protocol === 'file:'
         ? '本地预览无法自动获取，线上版本可用'
-        : '自动获取失败，请手动填写';
+        : drawDeadlinePassed()
+          ? '⚠️ 今日开奖号获取失败，请手动填写'
+          : '自动获取失败，请稍后重试或手动填写';
     }
     return 0;
   } finally {
@@ -804,9 +817,8 @@ renderStats();
 if (todayDraw) renderDayResult(todayStr());
 fetchOfficialDraws(false);
 setInterval(() => {
-  const now = new Date();
-  if (now.getHours() >= 21 && !getDraws()[todayStr()]) fetchOfficialDraws(false);
-}, 10 * 60 * 1000);
+  if (inDrawFetchWindow() && !getDraws()[todayStr()]) fetchOfficialDraws(false);
+}, 5 * 60 * 1000);
 const savedView = localStorage.getItem('lotto_view');
 switchView(['main', 'bets', 'stats'].includes(savedView) ? savedView : 'main');
 </script>
