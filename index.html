@@ -182,7 +182,7 @@ input[type=date] { max-width: 165px; }
       <div class="bet-list" id="betList"></div>
       <div class="cost" id="betTotal" style="display:none">
         <span id="betTotalCount"></span>
-        <span>总投入 <b id="betTotalAmount"></b></span>
+        <span>当日投入 <b id="betTotalAmount"></b></span>
       </div>
     </div>
 
@@ -364,7 +364,9 @@ function saveBets(bets) {
   localStorage.setItem(BET_KEY, JSON.stringify(bets));
 }
 function renderBets() {
-  const bets = getBets();
+  const allBets = getBets();
+  const date = $('betDate').value || defaultBetDate();
+  const bets = allBets.filter(bet => bet.date === date);
   const list = $('betList');
   const badge = $('betBadge');
   if (badge) {
@@ -373,28 +375,26 @@ function renderBets() {
   }
   list.innerHTML = '';
   if (bets.length === 0) {
-    list.innerHTML = '<div class="empty-text">暂无投注记录，添加上面的号码吧</div>';
+    list.innerHTML = '<div class="empty-text">' + date + ' 暂无投注记录</div>';
     $('betTotal').style.display = 'none';
     return;
   }
   let totalAmount = 0;
-  const rows = bets.map((bet, i) => ({ bet, i })).sort((a, b) => {
-    const da = a.bet.date || '';
-    const db = b.bet.date || '';
-    return da === db ? b.i - a.i : db.localeCompare(da);
-  });
+  const rows = allBets.map((bet, i) => ({ bet, i }))
+    .filter(row => row.bet.date === date)
+    .reverse();
   rows.forEach(({ bet, i }) => {
     totalAmount += bet.amount;
     const el = document.createElement('div');
     el.className = 'bet-item';
-    const dateText = bet.date ? bet.date.slice(5).replace('-', '/') : '';
-    el.innerHTML = '<span class="bet-num">' + bet.num + '</span><span class="bet-type">' + PLAY_NAMES[bet.type] + '</span><span class="bet-date">' + dateText + '</span><span class="bet-amount">' + bet.amount + '元</span><button class="bet-del" data-i="' + i + '">×</button>';
+    el.innerHTML = '<span class="bet-num">' + bet.num + '</span><span class="bet-type">' + PLAY_NAMES[bet.type] + '</span><span class="bet-amount">' + bet.amount + '元</span><button class="bet-del" data-i="' + i + '">×</button>';
     list.appendChild(el);
   });
   $('betTotal').style.display = '';
   $('betTotalCount').textContent = bets.length + ' 注';
   $('betTotalAmount').textContent = totalAmount + ' 元';
 }
+$('betDate').onchange = () => renderBets();
 $('addBetBtn').onclick = () => {
   const num = $('betNum').value.trim();
   if (!/^\d{3}$/.test(num)) { alert('请输入3位数字（000-999）'); return; }
@@ -413,9 +413,11 @@ $('addBetBtn').onclick = () => {
   $('betNum').focus();
 };
 $('clearBetsBtn').onclick = () => {
-  if (getBets().length === 0) return;
-  if (!confirm('确定清空所有投注记录？')) return;
-  saveBets([]);
+  const date = $('betDate').value || defaultBetDate();
+  const allBets = getBets();
+  if (!allBets.some(bet => bet.date === date)) return;
+  if (!confirm('确定清空 ' + date + ' 的投注记录？')) return;
+  saveBets(allBets.filter(bet => bet.date !== date));
   renderBets();
   renderStats();
   $('resultPanel').className = 'result-panel';
