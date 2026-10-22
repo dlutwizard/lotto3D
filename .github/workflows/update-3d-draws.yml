@@ -1,0 +1,37 @@
+name: Update 3D draw results
+
+on:
+  schedule:
+    # 21:35 and 22:10 China time (UTC+8)
+    - cron: '35 13 * * *'
+    - cron: '10 14 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-3d-draws
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Fetch official 3D results
+        run: node scripts/fetch_3d.mjs
+      - name: Commit updated results
+        run: |
+          if git diff --quiet -- draws.json; then
+            echo "No draw changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add draws.json
+          git commit -m "chore: update 3D draw results"
+          git push

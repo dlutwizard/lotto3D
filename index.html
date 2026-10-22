@@ -3,46 +3,247 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<meta name="theme-color" content="#1e293b" />
+<meta name="theme-color" content="#1e1b4b" />
 <title>3D 选号助手</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f1f5f9; min-height: 100vh; display: flex; justify-content: center; }
-.app { width: 100%; max-width: 520px; background: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+:root {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text2: #475569;
+  --text3: #94a3b8;
+  --primary: #4f46e5;
+  --primary-light: #eef2ff;
+  --success: #16a34a;
+  --success-bg: #f0fdf4;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+}
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); min-height: 100vh; display: flex; justify-content: center; }
+.app { width: 100%; max-width: 560px; background: var(--card); min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,.04); }
 .header { background: linear-gradient(135deg, #312e81, #4338ca); color: #fff; padding: 20px 16px; position: sticky; top: 0; z-index: 10; }
 .header h1 { font-size: 18px; font-weight: 600; }
-.header p { font-size: 12px; opacity: .75; margin-top: 4px; }
-.main { flex: 1; padding: 14px; overflow-y: auto; }
-.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
-.card h2 { font-size: 14px; color: #334155; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.header p { font-size: 12px; opacity: .7; margin-top: 4px; }
+.main { flex: 1; padding: 14px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.card h2 { font-size: 14px; color: var(--text); margin-bottom: 10px; font-weight: 600; }
 .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-label { font-size: 13px; color: #475569; min-width: 58px; }
-input, select { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: #f8fafc; }
-input:focus, select:focus { outline: none; border-color: #6366f1; background: #fff; }
-.btn { display: inline-block; padding: 10px 18px; background: #4f46e5; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; }
-.btn:active { background: #4338ca; }
-.btn.ghost { background: #eef2ff; color: #4f46e5; }
-.num-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
-.num-chip { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; font-size: 20px; font-weight: 700; color: #1e293b; }
-.num-chip.hit { background: #4f46e5; color: #fff; }
-.num-chip.avoid { background: #fee2e2; color: #b91c1c; text-decoration: line-through; }
-.rec-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.rec-item { padding: 8px 14px; background: #eef2ff; border-radius: 10px; font-size: 18px; font-weight: 700; color: #4338ca; letter-spacing: 2px; }
-.rec-item .tag { display: block; font-size: 10px; font-weight: 400; color: #6366f1; letter-spacing: 0; margin-top: 2px; }
-.cost { margin-top: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: #475569; display: flex; justify-content: space-between; }
-.cost b { color: #dc2626; font-size: 15px; }
-.tip { font-size: 11px; color: #94a3b8; margin-top: 10px; line-height: 1.6; }
-.section-title { font-size: 12px; color: #94a3b8; margin: 14px 0 8px; }
+label { font-size: 13px; color: var(--text2); min-width: 58px; flex-shrink: 0; }
+input, select { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: #f8fafc; transition: border .2s; }
+input:focus, select:focus { outline: none; border-color: var(--primary); background: #fff; }
 input[type=number] { -moz-appearance: textfield; }
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+.btn { display: inline-block; padding: 9px 16px; background: var(--primary); color: #fff; border: none; border-radius: 9px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s; }
+.btn:active { background: #4338ca; transform: scale(.97); }
+.btn.ghost { background: var(--primary-light); color: var(--primary); }
+.btn.danger { background: var(--danger-bg); color: var(--danger); }
+.btn.success { background: var(--success); }
+.btn.sm { padding: 5px 10px; font-size: 12px; }
+.tip { font-size: 11px; color: var(--text3); margin-top: 8px; line-height: 1.6; }
+.rec-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.rec-item { padding: 6px 12px; background: var(--primary-light); border-radius: 8px; font-size: 18px; font-weight: 700; color: #4338ca; letter-spacing: 2px; }
+.cost { margin-top: 10px; padding: 8px 10px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: var(--text2); display: flex; justify-content: space-between; align-items: center; }
+.cost b { color: var(--danger); font-size: 15px; }
+
+/* 投注记录 */
+.bet-list { margin-top: 10px; }
+.bet-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #f8fafc; border-radius: 8px; margin-bottom: 6px; }
+.bet-num { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: 2px; min-width: 48px; }
+.bet-type { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: var(--primary-light); color: var(--primary); }
+.bet-amount { font-size: 12px; color: var(--text3); margin-left: auto; }
+.bet-del { background: none; border: none; color: #cbd5e1; font-size: 16px; cursor: pointer; padding: 2px 6px; }
+.bet-del:active { color: var(--danger); }
+
+/* 开奖结果 */
+.result-panel { margin-top: 12px; display: none; }
+.result-panel.show { display: block; }
+.result-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--success-bg); border-radius: 8px; margin-bottom: 8px; }
+.result-header.win { background: var(--success-bg); }
+.result-header.lose { background: var(--danger-bg); }
+.result-header .label { font-size: 13px; color: var(--text2); }
+.result-header .amount { font-size: 18px; font-weight: 700; }
+.result-header.win .amount { color: var(--success); }
+.result-header.lose .amount { color: var(--danger); }
+.result-detail { font-size: 12px; color: var(--text2); padding: 6px 0; }
+.result-detail .hit { color: var(--success); font-weight: 600; }
+.result-detail .miss { color: var(--text3); }
+.section-sep { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+.empty-text { font-size: 12px; color: var(--text3); text-align: center; padding: 12px 0; }
+
+/* 页签切换 */
+.topbar { position: sticky; top: 0; z-index: 10; }
+.header { position: static; }
+.tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--border); padding: 0 8px; gap: 2px; }
+.tab { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 12px 2px 10px; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text3); font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: color .15s, border-color .15s; }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--primary-light); color: var(--primary); font-size: 10px; line-height: 1; }
+.tab.active .tab-badge { background: var(--primary); color: #fff; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* 日期与盈亏日历 */
+input[type=date] { max-width: 165px; }
+.bet-date { font-size: 11px; color: var(--text3); }
+.result-header.flat { background: #f1f5f9; }
+.result-header.flat .amount { color: var(--text2); }
+.stats-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.stats-head h2 { margin-bottom: 2px; }
+.month-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+.sum-cell { background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 9px 10px; }
+.sum-cell span { display: block; font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.sum-cell b { font-size: 16px; color: var(--text); }
+.profit-text { color: #dc2626 !important; }
+.loss-text { color: #16a34a !important; }
+.month-bar { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; }
+.month-bar b { font-size: 14px; color: var(--text); }
+.month-nav { width: 30px; height: 30px; border: none; border-radius: 50%; background: #f1f5f9; color: var(--text2); font-size: 18px; line-height: 1; cursor: pointer; }
+.weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal-cell { min-height: 54px; padding: 5px 2px; border: 1px solid transparent; border-radius: 9px; background: #f8fafc; color: var(--text2); font-family: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+.cal-cell.blank { visibility: hidden; cursor: default; }
+.cal-cell .d { font-size: 11px; line-height: 1.2; }
+.cal-cell .v { margin-top: 4px; font-size: 10px; font-weight: 600; line-height: 1.15; white-space: nowrap; }
+.cal-cell.profit { background: #fee2e2; border-color: #fecaca; }
+.cal-cell.profit .v { color: #dc2626; }
+.cal-cell.loss { background: #dcfce7; border-color: #bbf7d0; }
+.cal-cell.loss .v { color: #16a34a; }
+.cal-cell.pending { background: #f1f5f9; border-color: #e2e8f0; }
+.cal-cell.pending .v { color: #64748b; font-size: 9px; }
+.cal-cell.flat .v { color: var(--text3); font-size: 9px; }
+.cal-cell.today .d { color: #fff; background: #4338ca; border-radius: 8px; padding: 1px 5px; }
+.cal-cell.selected { border-color: #4f46e5; box-shadow: 0 0 0 1px #4f46e5 inset; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0 2px; font-size: 11px; color: var(--text3); }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.legend i.profit { background: #fee2e2; border: 1px solid #fca5a5; }
+.legend i.loss { background: #dcfce7; border: 1px solid #86efac; }
+.legend i.pending { background: #f1f5f9; border: 1px solid #cbd5e1; }
+.day-detail { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.detail-head b { font-size: 14px; color: var(--text); }
+.detail-sub { margin-top: 3px; font-size: 11px; color: var(--text3); }
+.detail-net { font-size: 16px; font-weight: 700; white-space: nowrap; }
+.detail-net.pending-text { color: #64748b; font-size: 12px; }
+.day-bet { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px dashed #f1f5f9; font-size: 12px; color: var(--text2); }
+.day-bet:last-child { border-bottom: none; }
+.day-bet .hit { color: #16a34a; font-weight: 600; }
+.day-bet .miss { color: var(--text3); }
+.data-actions { display: flex; gap: 8px; margin-top: 12px; }
+.data-actions .btn { flex: 1; text-align: center; }
+.import-label { display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: inherit; }
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="header">
-    <h1>🎱 3D 选号助手</h1>
-    <p>固定策略 · 每日推荐 · 纯本地计算</p>
+  <div class="topbar">
+    <div class="header">
+      <h1>🌱 3D 选号助手</h1>
+      <p>选号 · 记账 · 盈亏日历</p>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="页面切换">
+      <button class="tab active" type="button" data-view="main" role="tab" aria-selected="true">选号推荐</button>
+      <button class="tab" type="button" data-view="bets" role="tab" aria-selected="false">投注 / 开奖<span class="tab-badge" id="betBadge" style="display:none">0</span></button>
+      <button class="tab" type="button" data-view="stats" role="tab" aria-selected="false">盈亏日历</button>
+    </nav>
   </div>
   <div class="main">
+
+    <section class="view" id="view-bets">
+    <!-- 投注记录 -->
+    <div class="card">
+      <h2>📝 投注记录</h2>
+      <p class="tip" style="margin: -4px 0 8px">按日期记录，数据自动保存在本机</p>
+      <div class="row">
+        <label>日期</label>
+        <input type="date" id="betDate" />
+      </div>
+      <div class="row">
+        <label>号码</label>
+        <input type="text" id="betNum" maxlength="3" placeholder="3位数字" style="max-width:80px; text-align:center; font-weight:700; letter-spacing:3px;" />
+      </div>
+      <div class="row">
+        <label>玩法</label>
+        <select id="betType" style="max-width:100px">
+          <option value="zhixuan">直选</option>
+          <option value="zu3">组三</option>
+          <option value="zu6">组六</option>
+        </select>
+        <label>金额</label>
+        <input type="number" id="betAmount" min="1" value="2" style="max-width:60px" />
+        <label style="min-width:auto">元</label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="addBetBtn" style="flex:1">＋ 添加投注</button>
+        <button class="btn danger" id="clearBetsBtn">清空</button>
+      </div>
+      <div class="bet-list" id="betList"></div>
+      <div class="cost" id="betTotal" style="display:none">
+        <span id="betTotalCount"></span>
+        <span>总投入 <b id="betTotalAmount"></b></span>
+      </div>
+    </div>
+
+    <!-- 开奖计算 -->
+    <div class="card">
+      <h2>🏆 开奖计算</h2>
+      <div class="row">
+        <label>开奖日期</label>
+        <input type="date" id="drawDate" />
+      </div>
+      <div class="row">
+        <label>开奖号码</label>
+        <input type="text" id="winNum" maxlength="3" placeholder="今天开奖的3位数字" style="max-width:100px; text-align:center; font-weight:700; letter-spacing:3px; font-size:16px;" />
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" id="fetchDrawBtn" style="flex:1" type="button">自动获取开奖号</button>
+        <button class="btn success" id="calcBtn" style="flex:1">保存并计算</button>
+      </div>
+      <p class="tip" id="fetchStatus">每天 21:15 开奖，线上版本会在 21:40 左右自动更新</p>
+      <div class="result-panel" id="resultPanel"></div>
+    </div>
+    </section>
+
+    <section class="view" id="view-stats">
+      <div class="card">
+        <div class="stats-head">
+          <div>
+            <h2>📊 盈亏日历</h2>
+            <p class="tip" style="margin-top:2px">按天汇总投入、奖金和净盈亏</p>
+          </div>
+          <button class="btn ghost sm" id="todayBtn" type="button">回到本月</button>
+        </div>
+        <div class="month-summary">
+          <div class="sum-cell"><span>本月投入</span><b id="monthBet">0 元</b></div>
+          <div class="sum-cell"><span>本月奖金</span><b id="monthWin">0 元</b></div>
+          <div class="sum-cell"><span>已结算盈亏</span><b id="monthNet">0 元</b></div>
+          <div class="sum-cell"><span>待开奖投入</span><b id="monthPending">0 元</b></div>
+        </div>
+        <div class="month-bar">
+          <button class="month-nav" id="prevMonth" type="button" aria-label="上个月">‹</button>
+          <b id="monthLabel"></b>
+          <button class="month-nav" id="nextMonth" type="button" aria-label="下个月">›</button>
+        </div>
+        <div class="weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+        <div class="calendar" id="calendar"></div>
+        <div class="legend">
+          <span><i class="profit"></i>盈利</span>
+          <span><i class="loss"></i>亏损</span>
+          <span><i class="pending"></i>待开奖</span>
+        </div>
+        <div class="day-detail" id="dayDetail"></div>
+        <div class="data-actions">
+          <button class="btn ghost" id="exportBtn" type="button">导出备份</button>
+          <label class="btn ghost import-label">导入备份<input type="file" id="importFile" accept=".json,application/json" hidden /></label>
+        </div>
+        <p class="tip">数据保存在本机浏览器；清理浏览器数据前请先导出备份。</p>
+      </div>
+    </section>
+
+    <section class="view active" id="view-main">
+    <!-- 策略推荐 -->
     <div class="card">
       <h2>📋 固定策略（自动保存）</h2>
       <div class="row">
@@ -55,7 +256,7 @@ input[type=number] { -moz-appearance: textfield; }
       </div>
       <div class="row">
         <label>单注金额</label>
-        <input type="number" id="betSize" min="1" value="2" />
+        <input type="number" id="betSize" min="1" value="2" style="max-width:60px" />
         <label style="min-width:auto">元</label>
       </div>
       <div class="row">
@@ -68,33 +269,35 @@ input[type=number] { -moz-appearance: textfield; }
       </div>
       <div class="row">
         <label>和值范围</label>
-        <input type="number" id="sumMin" placeholder="最小" min="0" max="27" />
+        <input type="number" id="sumMin" placeholder="最小" min="0" max="27" style="max-width:70px" />
         <input type="number" id="sumMax" placeholder="最大" min="0" max="27" style="max-width:70px" />
       </div>
       <div class="row">
         <label>奇数个数</label>
-        <input type="text" id="oddEven" placeholder="如 1-2（留空不限）" />
+        <input type="text" id="oddEven" placeholder="如 1-2（留空不限）" style="max-width:90px" />
       </div>
       <div class="row">
         <label>跨度范围</label>
-        <input type="number" id="spanMin" placeholder="最小" min="0" max="9" />
+        <input type="number" id="spanMin" placeholder="最小" min="0" max="9" style="max-width:70px" />
         <input type="number" id="spanMax" placeholder="最大" min="0" max="9" style="max-width:70px" />
       </div>
       <div class="row" style="margin-top:12px">
-        <button class="btn" id="saveBtn">保存策略</button>
-        <button class="btn ghost" id="genBtn">生成今日推荐</button>
+        <button class="btn" id="saveBtn" style="flex:1">保存策略</button>
+        <button class="btn ghost" id="genBtn" style="flex:1">生成今日推荐</button>
       </div>
     </div>
 
+    <!-- 试机号 -->
     <div class="card">
       <h2>🔢 试机号参考（手动录入）</h2>
       <div class="row">
         <label>今日试机号</label>
-        <input type="text" id="testNum" maxlength="3" placeholder="3 位数字，如 528" />
+        <input type="text" id="testNum" maxlength="3" placeholder="3位数字，如 528" style="max-width:100px; text-align:center; letter-spacing:3px;" />
       </div>
-      <p class="tip">试机号是每期开奖前试机产生的号码，很多彩民用它做参考。填入后推荐会向试机号数字倾斜（加权）。</p>
+      <p class="tip">填入后推荐会向试机号数字倾斜（加权）。</p>
     </div>
 
+    <!-- 推荐结果 -->
     <div class="card" id="resultCard" style="display:none">
       <h2>✨ 今日推荐</h2>
       <div class="rec-list" id="recList"></div>
@@ -102,24 +305,263 @@ input[type=number] { -moz-appearance: textfield; }
         <span id="recCount"></span>
         <span>合计 <b id="recCost"></b></span>
       </div>
-      <p class="tip">⚠️ 3D 开奖是独立随机事件，推荐仅供选号参考，请理性购彩，量力而行。</p>
+      <p class="tip">⚠️ 3D 开奖是独立随机事件，推荐仅供选号参考，请理性购彩。</p>
     </div>
+    </section>
 
-    <div class="card">
-      <h2>ℹ️ 关于</h2>
-      <p class="tip" style="font-size:12px">
-        本工具为纯前端本地计算，不调用任何服务器接口。<br/>
-        推荐逻辑：按你的固定策略规则从 000-999 中筛选，试机号数字加权提高出现概率。<br/>
-        规则调整请改上方策略区并点"保存策略"。
-      </p>
-    </div>
   </div>
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
-const KEYS = ['playType','betSize','mustInclude','avoid','sumMin','sumMax','oddEven','spanMin','spanMax','testNum'];
+const PLAY_NAMES = { zhixuan: '直选', zu3: '组三', zu6: '组六' };
+const PRIZE = { zhixuan: 1040, zu3: 346, zu6: 173 };
+const BET_KEY = 'lotto_bets';
+const DRAW_KEY = 'lotto_draws';
 
+function pad2(n) { return String(n).padStart(2, '0'); }
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+function parseDate(s) {
+  const p = s.split('-').map(Number);
+  return new Date(p[0], p[1] - 1, p[2]);
+}
+function money(n) {
+  const v = Math.round(n * 100) / 100;
+  return Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/0$/, '');
+}
+function signedMoney(n) {
+  return (n > 0 ? '+' : '') + money(n) + ' 元';
+}
+function getDraws() {
+  try {
+    const v = JSON.parse(localStorage.getItem(DRAW_KEY) || '{}');
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  } catch(e) { return {}; }
+}
+function saveDraws(draws) {
+  localStorage.setItem(DRAW_KEY, JSON.stringify(draws));
+}
+
+// === 投注记录 ===
+function getBets() {
+  try {
+    const v = JSON.parse(localStorage.getItem(BET_KEY) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch(e) { return []; }
+}
+function saveBets(bets) {
+  localStorage.setItem(BET_KEY, JSON.stringify(bets));
+}
+function renderBets() {
+  const bets = getBets();
+  const list = $('betList');
+  const badge = $('betBadge');
+  if (badge) {
+    badge.textContent = bets.length;
+    badge.style.display = bets.length ? 'inline-flex' : 'none';
+  }
+  list.innerHTML = '';
+  if (bets.length === 0) {
+    list.innerHTML = '<div class="empty-text">暂无投注记录，添加上面的号码吧</div>';
+    $('betTotal').style.display = 'none';
+    return;
+  }
+  let totalAmount = 0;
+  const rows = bets.map((bet, i) => ({ bet, i })).sort((a, b) => {
+    const da = a.bet.date || '';
+    const db = b.bet.date || '';
+    return da === db ? b.i - a.i : db.localeCompare(da);
+  });
+  rows.forEach(({ bet, i }) => {
+    totalAmount += bet.amount;
+    const el = document.createElement('div');
+    el.className = 'bet-item';
+    const dateText = bet.date ? bet.date.slice(5).replace('-', '/') : '';
+    el.innerHTML = '<span class="bet-num">' + bet.num + '</span><span class="bet-type">' + PLAY_NAMES[bet.type] + '</span><span class="bet-date">' + dateText + '</span><span class="bet-amount">' + bet.amount + '元</span><button class="bet-del" data-i="' + i + '">×</button>';
+    list.appendChild(el);
+  });
+  $('betTotal').style.display = '';
+  $('betTotalCount').textContent = bets.length + ' 注';
+  $('betTotalAmount').textContent = totalAmount + ' 元';
+}
+$('addBetBtn').onclick = () => {
+  const num = $('betNum').value.trim();
+  if (!/^\d{3}$/.test(num)) { alert('请输入3位数字（000-999）'); return; }
+  const type = $('betType').value;
+  if (type === 'zu3' && shapeOf(num) !== 'zu3') { alert('组三号码必须包含一对相同数字，如 112'); return; }
+  if (type === 'zu6' && shapeOf(num) !== 'zu6') { alert('组六号码必须是三个不同数字，如 123'); return; }
+  const amount = Math.max(1, parseInt($('betAmount').value, 10) || 2);
+  const date = $('betDate').value || todayStr();
+  const bets = getBets();
+  bets.push({ num, type, amount, date });
+  saveBets(bets);
+  renderBets();
+  renderStats();
+  renderDayResult(date);
+  $('betNum').value = '';
+  $('betNum').focus();
+};
+$('clearBetsBtn').onclick = () => {
+  if (getBets().length === 0) return;
+  if (!confirm('确定清空所有投注记录？')) return;
+  saveBets([]);
+  renderBets();
+  renderStats();
+  $('resultPanel').className = 'result-panel';
+  $('resultPanel').innerHTML = '';
+};
+$('betList').onclick = (e) => {
+  const btn = e.target.closest('.bet-del');
+  if (!btn) return;
+  const i = parseInt(btn.dataset.i, 10);
+  const bets = getBets();
+  bets.splice(i, 1);
+  saveBets(bets);
+  renderBets();
+  renderStats();
+  renderDayResult($('drawDate').value || todayStr());
+};
+
+// === 开奖计算 ===
+function sortStr(s) { return s.split('').sort().join(''); }
+function shapeOf(s) {
+  const n = new Set(s.split('')).size;
+  return n === 1 ? 'baozi' : n === 2 ? 'zu3' : 'zu6';
+}
+function checkBet(bet, winNum) {
+  if (bet.type === 'zhixuan') {
+    return bet.num === winNum;
+  }
+  if (bet.type === 'zu3') {
+    return shapeOf(bet.num) === 'zu3' && shapeOf(winNum) === 'zu3' && sortStr(bet.num) === sortStr(winNum);
+  }
+  if (bet.type === 'zu6') {
+    return shapeOf(bet.num) === 'zu6' && shapeOf(winNum) === 'zu6' && sortStr(bet.num) === sortStr(winNum);
+  }
+  return false;
+}
+function computeDay(date) {
+  const winNum = getDraws()[date] || '';
+  const bets = getBets().filter(b => b.date === date);
+  let totalBet = 0;
+  let totalWin = 0;
+  const rows = bets.map(bet => {
+    totalBet += bet.amount;
+    const hit = !!winNum && checkBet(bet, winNum);
+    const prize = hit ? PRIZE[bet.type] * (bet.amount / 2) : 0;
+    totalWin += prize;
+    return { bet, hit, prize };
+  });
+  return { date, bets, rows, winNum, totalBet, totalWin, net: winNum ? totalWin - totalBet : null };
+}
+function renderDayResult(date) {
+  const panel = $('resultPanel');
+  const day = computeDay(date);
+  panel.className = 'result-panel show';
+  if (!day.bets.length) {
+    panel.innerHTML = '<div class="empty-text">' + date + ' 没有投注记录</div>';
+    return;
+  }
+  const details = day.rows.map(row => {
+    const status = !day.winNum ? '待开奖' : row.hit ? '✅ 中 ' + money(row.prize) + '元' : '未中';
+    return '<div class="result-detail"><span class="' + (row.hit ? 'hit' : 'miss') + '">' + (row.hit ? '✅' : '•') + '</span> ' + row.bet.num + ' (' + PLAY_NAMES[row.bet.type] + ' ' + row.bet.amount + '元) → ' + status + '</div>';
+  }).join('');
+  if (!day.winNum) {
+    panel.innerHTML =
+      '<div class="result-header flat"><span class="label">' + date + ' 投入 ' + money(day.totalBet) + ' 元</span><span class="amount" style="font-size:13px">待开奖</span></div>' + details;
+    return;
+  }
+  const netCls = day.net > 0 ? 'win' : day.net < 0 ? 'lose' : 'flat';
+  panel.innerHTML =
+    '<div class="result-header ' + (day.totalWin > 0 ? 'win' : 'lose') + '">' +
+      '<span class="label">开奖号 <b style="letter-spacing:2px">' + day.winNum + '</b></span>' +
+      '<span class="amount">' + (day.totalWin > 0 ? '+' : '') + money(day.totalWin) + ' 元</span>' +
+    '</div>' +
+    '<div class="result-header ' + netCls + '">' +
+      '<span class="label">投入 ' + money(day.totalBet) + ' 元</span>' +
+      '<span class="amount" style="font-size:15px">净 ' + signedMoney(day.net) + '</span>' +
+    '</div>' + details;
+}
+
+let drawFetching = false;
+async function fetchOfficialDraws(showFeedback) {
+  if (drawFetching) return 0;
+  drawFetching = true;
+  const btn = $('fetchDrawBtn');
+  const status = $('fetchStatus');
+  if (btn) { btn.disabled = true; btn.textContent = '获取中…'; }
+  if (status && showFeedback) status.textContent = '正在获取开奖数据…';
+  try {
+    const res = await fetch('draws.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const source = data && data.draws ? data.draws : {};
+    const local = getDraws();
+    let changed = 0;
+    Object.keys(source).forEach(date => {
+      const rec = source[date];
+      const num = typeof rec === 'string' ? rec : rec && rec.number;
+      if (/^\d{3}$/.test(num || '') && local[date] !== num) {
+        local[date] = num;
+        changed++;
+      }
+    });
+    saveDraws(local);
+    const selected = $('drawDate').value || todayStr();
+    if (local[selected]) $('winNum').value = local[selected];
+    renderStats();
+    if (local[selected] && getBets().some(b => b.date === selected)) renderDayResult(selected);
+    const today = local[todayStr()];
+    if (status) {
+      status.textContent = today
+        ? '✅ 已获取今日开奖号 ' + today
+        : '数据源暂无今日开奖号，可稍后重试或手动填写';
+    }
+    return changed;
+  } catch (err) {
+    if (status) {
+      status.textContent = location.protocol === 'file:'
+        ? '本地预览无法自动获取，线上版本可用'
+        : '自动获取失败，请手动填写';
+    }
+    return 0;
+  } finally {
+    drawFetching = false;
+    if (btn) { btn.disabled = false; btn.textContent = '自动获取开奖号'; }
+  }
+}
+$('fetchDrawBtn').onclick = () => fetchOfficialDraws(true);
+
+$('calcBtn').onclick = () => {
+  const date = $('drawDate').value || todayStr();
+  const winNum = $('winNum').value.trim();
+  if (!/^\d{3}$/.test(winNum)) { alert('请输入3位开奖号码'); return; }
+  const draws = getDraws();
+  draws[date] = winNum;
+  saveDraws(draws);
+  selectedDate = date;
+  const d = parseDate(date);
+  viewYear = d.getFullYear();
+  viewMonth = d.getMonth();
+  renderDayResult(date);
+  renderStats();
+};
+$('drawDate').onchange = () => {
+  const date = $('drawDate').value || todayStr();
+  selectedDate = date;
+  $('winNum').value = getDraws()[date] || '';
+  const d = parseDate(date);
+  viewYear = d.getFullYear();
+  viewMonth = d.getMonth();
+  renderStats();
+  renderDayResult(date);
+};
+
+// === 策略推荐 ===
+const KEYS = ['playType','betSize','mustInclude','avoid','sumMin','sumMax','oddEven','spanMin','spanMax','testNum'];
 function loadState() {
   KEYS.forEach(k => {
     const v = localStorage.getItem('lotto_' + k);
@@ -127,16 +569,14 @@ function loadState() {
   });
 }
 function saveState() {
-  KEYS.forEach(k => {
-    if ($(k)) localStorage.setItem('lotto_' + k, $(k).value);
-  });
+  KEYS.forEach(k => { if ($(k)) localStorage.setItem('lotto_' + k, $(k).value); });
 }
 function parseDigits(v) {
   return (v || '').split(/[^0-9]/).filter(c => c !== '').map(Number);
 }
 function parseRange(minV, maxV, dmax) {
-  const a = (minV || "").trim();
-  const b = (maxV || "").trim();
+  const a = (minV || '').trim();
+  const b = (maxV || '').trim();
   if (!a && !b) return null;
   if (a && !b) return [parseInt(a, 10), dmax];
   if (!a) return [0, parseInt(b, 10)];
@@ -144,41 +584,36 @@ function parseRange(minV, maxV, dmax) {
 }
 function genRecommend() {
   saveState();
-  const playType = $('playType').value;
   const betSize = Math.max(1, parseInt($('betSize').value, 10) || 2);
   const must = parseDigits($('mustInclude').value);
   const avoid = parseDigits($('avoid').value);
-  const sumRange = parseRange($('sumMin').value, $('sumMax').value, 27);
-  const oddRange = parseRange($('oddEven').value, '', 3);
-  const spanRange = parseRange($('spanMin').value, $('spanMax').value, 9);
+  const sumR = parseRange($('sumMin').value, $('sumMax').value, 27);
+  const oddR = parseRange($('oddEven').value, '', 3);
+  const spanR = parseRange($('spanMin').value, $('spanMax').value, 9);
   const testDigits = parseDigits($('testNum').value);
+  const inR = (v, r) => !r || (v >= r[0] && v <= r[1]);
 
-  const inRange = (v, r) => !r || (v >= r[0] && v <= r[1]);
   const candidates = [];
   for (let n = 0; n < 1000; n++) {
     const d = [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10];
     if (avoid.some(a => d.includes(a))) continue;
     if (must.length && !must.every(m => d.includes(m))) continue;
     const sum = d[0] + d[1] + d[2];
-    if (!inRange(sum, sumRange)) continue;
+    if (!inR(sum, sumR)) continue;
     const odd = d.filter(x => x % 2 === 1).length;
-    if (!inRange(odd, oddRange)) continue;
+    if (!inR(odd, oddR)) continue;
     const span = Math.max(...d) - Math.min(...d);
-    if (!inRange(span, spanRange)) continue;
-    // 试机号加权：命中试机号数字越多权重越高
+    if (!inR(span, spanR)) continue;
     let w = 1 + testDigits.filter(t => d.includes(t)).length * 1.5;
-    candidates.push({ n, d, w });
+    candidates.push({ n, w });
   }
 
-  // 加权随机抽 10 注
   const picks = [];
-  const MAX_PICKS = 10;
   let guard = 0;
-  while (picks.length < MAX_PICKS && candidates.length > 0 && guard < 20000) {
+  while (picks.length < 10 && candidates.length > 0 && guard < 20000) {
     guard++;
     const total = candidates.reduce((s, c) => s + c.w, 0);
-    let r = Math.random() * total;
-    let idx = 0;
+    let r = Math.random() * total, idx = 0;
     for (let i = 0; i < candidates.length; i++) {
       r -= candidates[i].w;
       if (r <= 0) { idx = i; break; }
@@ -187,24 +622,193 @@ function genRecommend() {
     candidates.splice(idx, 1);
   }
 
-  const shown = picks.slice(0, 10);
   const recList = $('recList');
   recList.innerHTML = '';
-  shown.forEach(n => {
+  picks.forEach(n => {
     const s = String(n).padStart(3, '0');
     const el = document.createElement('div');
     el.className = 'rec-item';
     el.textContent = s;
     recList.appendChild(el);
   });
-  $('recCount').textContent = '共 ' + shown.length + ' 注 · 玩法：' + $('playType').selectedOptions[0].text;
-  $('recCost').textContent = (shown.length * betSize) + ' 元';
+  $('recCount').textContent = picks.length + ' 注 · ' + $('playType').selectedOptions[0].text;
+  $('recCost').textContent = (picks.length * betSize) + ' 元';
   $('resultCard').style.display = '';
 }
-
-$('saveBtn').onclick = () => { saveState(); alert('策略已保存（本机）'); };
+$('saveBtn').onclick = () => { saveState(); alert('策略已保存'); };
 $('genBtn').onclick = genRecommend;
+
+// === 盈亏日历 ===
+let viewYear = new Date().getFullYear();
+let viewMonth = new Date().getMonth();
+let selectedDate = todayStr();
+
+function renderStats() {
+  const prefix = viewYear + '-' + pad2(viewMonth + 1);
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  let totalBet = 0, totalWin = 0, settledNet = 0, pending = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const day = computeDay(prefix + '-' + pad2(d));
+    totalBet += day.totalBet;
+    if (day.winNum) {
+      totalWin += day.totalWin;
+      settledNet += day.net;
+    } else {
+      pending += day.totalBet;
+    }
+  }
+  $('monthLabel').textContent = viewYear + '年' + (viewMonth + 1) + '月';
+  $('monthBet').textContent = money(totalBet) + ' 元';
+  $('monthWin').textContent = money(totalWin) + ' 元';
+  const netEl = $('monthNet');
+  netEl.textContent = signedMoney(settledNet);
+  netEl.className = settledNet > 0 ? 'profit-text' : settledNet < 0 ? 'loss-text' : '';
+  $('monthPending').textContent = money(pending) + ' 元';
+
+  const firstWeekday = new Date(viewYear, viewMonth, 1).getDay();
+  let html = '';
+  for (let i = 0; i < firstWeekday; i++) html += '<div class="cal-cell blank"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = prefix + '-' + pad2(d);
+    const day = computeDay(ds);
+    let cls = 'flat';
+    let val = '';
+    if (day.bets.length && day.winNum) {
+      cls = day.net > 0 ? 'profit' : day.net < 0 ? 'loss' : 'flat';
+      val = day.net === 0 ? '0' : signedMoney(day.net).replace(' 元', '');
+    } else if (day.bets.length) {
+      cls = 'pending';
+      val = '待开奖';
+    }
+    if (ds === todayStr()) cls += ' today';
+    if (ds === selectedDate) cls += ' selected';
+    html += '<button type="button" class="cal-cell ' + cls + '" data-date="' + ds + '"><span class="d">' + d + '</span><span class="v">' + val + '</span></button>';
+  }
+  $('calendar').innerHTML = html;
+  renderDayDetail(selectedDate);
+}
+
+function renderDayDetail(date) {
+  const day = computeDay(date);
+  const p = date.split('-').map(Number);
+  let netHtml = '';
+  if (day.winNum) {
+    const cls = day.net > 0 ? 'profit-text' : day.net < 0 ? 'loss-text' : '';
+    netHtml = '<div class="detail-net ' + cls + '">' + signedMoney(day.net) + '</div>';
+  } else if (day.bets.length) {
+    netHtml = '<div class="detail-net pending-text">待开奖</div>';
+  }
+  let html = '<div class="detail-head"><div><b>' + p[1] + '月' + p[2] + '日</b><div class="detail-sub">' +
+    (day.winNum ? '开奖号 ' + day.winNum : '未录入开奖号') + ' · 投入 ' + money(day.totalBet) + ' 元</div></div>' + netHtml + '</div>';
+  if (!day.bets.length) {
+    html += '<div class="empty-text">' + (day.winNum ? '这一天没有投注' : '这一天没有记录') + '</div>';
+  } else {
+    html += day.rows.map(row => {
+      const right = !day.winNum ? '<span class="miss">待开奖</span>' : row.hit ? '<span class="hit">中 ' + money(row.prize) + ' 元</span>' : '<span class="miss">未中</span>';
+      return '<div class="day-bet"><span>' + row.bet.num + ' · ' + PLAY_NAMES[row.bet.type] + ' · ' + money(row.bet.amount) + '元</span>' + right + '</div>';
+    }).join('');
+  }
+  $('dayDetail').innerHTML = html;
+}
+
+$('prevMonth').onclick = () => {
+  viewMonth--;
+  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  renderStats();
+};
+$('nextMonth').onclick = () => {
+  viewMonth++;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  renderStats();
+};
+$('todayBtn').onclick = () => {
+  const d = new Date();
+  viewYear = d.getFullYear();
+  viewMonth = d.getMonth();
+  selectedDate = todayStr();
+  renderStats();
+};
+$('calendar').onclick = (e) => {
+  const btn = e.target.closest('.cal-cell[data-date]');
+  if (!btn) return;
+  selectedDate = btn.dataset.date;
+  const d = parseDate(selectedDate);
+  viewYear = d.getFullYear();
+  viewMonth = d.getMonth();
+  $('drawDate').value = selectedDate;
+  $('winNum').value = getDraws()[selectedDate] || '';
+  renderStats();
+  renderDayResult(selectedDate);
+};
+
+$('exportBtn').onclick = () => {
+  const settings = {};
+  KEYS.forEach(k => {
+    const v = localStorage.getItem('lotto_' + k);
+    if (v !== null) settings[k] = v;
+  });
+  const data = { version: 1, exportedAt: new Date().toISOString(), bets: getBets(), draws: getDraws(), settings };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '3d-lotto-backup-' + todayStr() + '.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('importFile').onchange = async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data.bets) || !data.draws || typeof data.draws !== 'object') throw new Error('bad backup');
+    if (!confirm('导入会覆盖当前投注和开奖记录，确定继续？')) return;
+    saveBets(data.bets);
+    saveDraws(data.draws);
+    if (data.settings) {
+      Object.keys(data.settings).forEach(k => localStorage.setItem('lotto_' + k, data.settings[k]));
+    }
+    loadState();
+    renderBets();
+    renderStats();
+    alert('备份已导入');
+  } catch(err) {
+    alert('导入失败：不是有效的备份文件');
+  } finally {
+    e.target.value = '';
+  }
+};
+
+// === 页签切换 ===
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  document.querySelectorAll('.tab').forEach(t => {
+    const active = t.dataset.view === name;
+    t.classList.toggle('active', active);
+    t.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  if (name === 'stats') renderStats();
+  localStorage.setItem('lotto_view', name);
+  document.querySelector('.main').scrollTop = 0;
+}
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => switchView(t.dataset.view);
+});
+
 loadState();
+$('betDate').value = todayStr();
+$('drawDate').value = todayStr();
+const todayDraw = getDraws()[todayStr()];
+if (todayDraw) $('winNum').value = todayDraw;
+renderBets();
+renderStats();
+if (todayDraw) renderDayResult(todayStr());
+fetchOfficialDraws(false);
+setInterval(() => {
+  const now = new Date();
+  if (now.getHours() >= 21 && !getDraws()[todayStr()]) fetchOfficialDraws(false);
+}, 10 * 60 * 1000);
+const savedView = localStorage.getItem('lotto_view');
+switchView(['main', 'bets', 'stats'].includes(savedView) ? savedView : 'main');
 </script>
 </body>
 </html>
