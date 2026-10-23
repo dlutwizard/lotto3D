@@ -2,8 +2,10 @@ name: Update 3D draw results
 
 on:
   schedule:
-    # Every 5 minutes from 21:20 to 21:40 China time (UTC+8)
+    # 21:20-21:40 China time (UTC+8) for the draw result
     - cron: '20,25,30,35,40 13 * * *'
+    # 22:00 and 22:30 China time for the next day's chart
+    - cron: '0,30 14 * * *'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +19,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,16 +27,19 @@ jobs:
           node-version: '20'
       - name: Fetch official 3D results
         run: node scripts/fetch_3d.mjs
-      - name: Commit updated results
+      - name: Fetch daily chart
+        continue-on-error: true
+        run: node scripts/fetch_chart.mjs
+      - name: Commit changes
         run: |
-          if git diff --quiet -- draws.json; then
-            echo "No draw changes"
+          git add -A -- draws.json charts.json charts
+          if git diff --cached --quiet; then
+            echo "No changes"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add draws.json
-          git commit -m "chore: update 3D draw results"
+          git commit -m "chore: update 3D draw results and chart"
           git push
       - name: Report fetch failure
         if: failure()

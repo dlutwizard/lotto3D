@@ -134,6 +134,15 @@ input[type=date] { max-width: 165px; }
 .data-actions { display: flex; gap: 8px; margin-top: 12px; }
 .data-actions .btn { flex: 1; text-align: center; }
 .import-label { display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: inherit; }
+
+/* 寻宝图 */
+.chart-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 0 8px; }
+.chart-head .issue { font-size: 13px; font-weight: 700; color: var(--primary); }
+.chart-wrap { background: #f8f9fc; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+.chart-wrap img { display: block; width: 100%; height: auto; }
+.chart-history { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chart-history button { padding: 4px 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text2); font-size: 12px; font-family: inherit; cursor: pointer; }
+.chart-history button.active { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 </style>
 </head>
 <body>
@@ -147,9 +156,27 @@ input[type=date] { max-width: 165px; }
       <button class="tab active" type="button" data-view="main" role="tab" aria-selected="true">选号推荐</button>
       <button class="tab" type="button" data-view="bets" role="tab" aria-selected="false">投注 / 开奖<span class="tab-badge" id="betBadge" style="display:none">0</span></button>
       <button class="tab" type="button" data-view="stats" role="tab" aria-selected="false">盈亏日历</button>
+      <button class="tab" type="button" data-view="chart" role="tab" aria-selected="false">寻宝图</button>
     </nav>
   </div>
   <div class="main">
+
+    <!-- 寻宝图 -->
+    <section class="view" id="view-chart">
+      <div class="card">
+        <h2>🍯 蜂巢九宫寻宝图</h2>
+        <p class="tip" style="margin: -4px 0 8px">每日自动更新，供选号参考</p>
+        <div class="chart-head">
+          <span class="issue" id="chartIssue">加载中…</span>
+          <button class="btn ghost" id="chartRefreshBtn" type="button" style="max-width:96px">刷新</button>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+          <div class="empty-text" style="padding:40px 0">正在加载…</div>
+        </div>
+        <div class="chart-history" id="chartHistory"></div>
+        <p class="tip" id="chartSource" style="margin-top:10px"></p>
+      </div>
+    </section>
 
     <section class="view" id="view-bets">
     <!-- 投注记录 -->
@@ -890,6 +917,47 @@ $('importFile').onchange = async (e) => {
   }
 };
 
+// === 寻宝图 ===
+let chartList = [];
+let chartLoading = false;
+
+function showChart(item) {
+  $('chartIssue').textContent = '第 ' + item.issue + ' 期';
+  $('chartWrap').innerHTML = '<a href="' + item.image + '" target="_blank" rel="noopener"><img src="' + item.image + '" alt="蜂巢九宫寻宝图 ' + item.issue + '"></a>';
+  $('chartSource').innerHTML = '来源：<a href="' + item.source + '" target="_blank" rel="noopener">' + item.title + '</a>';
+  const history = $('chartHistory');
+  history.innerHTML = '';
+  chartList.slice(0, 8).forEach(c => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = c.issue.slice(-3) + ' 期';
+    b.className = c.issue === item.issue ? 'active' : '';
+    b.onclick = () => showChart(c);
+    history.appendChild(b);
+  });
+}
+
+async function loadChart() {
+  if (chartLoading) return;
+  chartLoading = true;
+  try {
+    const res = await fetch('charts.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const list = Array.isArray(data.charts) ? data.charts : [];
+    if (!list.length) throw new Error('empty');
+    chartList = list;
+    showChart(list[0]);
+  } catch (err) {
+    $('chartIssue').textContent = '暂无图';
+    $('chartWrap').innerHTML = '<div class="empty-text" style="padding:40px 0">暂时没有获取到寻宝图，请稍后再试</div>';
+    $('chartSource').textContent = '';
+  } finally {
+    chartLoading = false;
+  }
+}
+$('chartRefreshBtn').onclick = loadChart;
+
 // === 页签切换 ===
 function switchView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
@@ -900,6 +968,7 @@ function switchView(name) {
   });
   if (name === 'stats') renderStats();
   if (name === 'bets') renderDayResult($('drawDate').value || todayStr());
+  if (name === 'chart') loadChart();
   localStorage.setItem('lotto_view', name);
   document.querySelector('.main').scrollTop = 0;
 }
@@ -920,7 +989,7 @@ setInterval(() => {
   if (inDrawFetchWindow() && !getDraws()[todayStr()]) fetchOfficialDraws(false);
 }, 5 * 60 * 1000);
 const savedView = localStorage.getItem('lotto_view');
-switchView(['main', 'bets', 'stats'].includes(savedView) ? savedView : 'main');
+switchView(['main', 'bets', 'stats', 'chart'].includes(savedView) ? savedView : 'main');
 </script>
 </body>
 </html>
