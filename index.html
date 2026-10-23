@@ -667,6 +667,7 @@ function parseRange(minV, maxV, dmax) {
 }
 function genRecommend() {
   saveState();
+  const playType = $('playType').value;
   const betSize = Math.max(1, parseInt($('betSize').value, 10) || 2);
   const must = parseDigits($('mustInclude').value);
   const avoid = parseDigits($('avoid').value);
@@ -677,8 +678,17 @@ function genRecommend() {
   const inR = (v, r) => !r || (v >= r[0] && v <= r[1]);
 
   const candidates = [];
+  const seen = new Set();
   for (let n = 0; n < 1000; n++) {
     const d = [Math.floor(n / 100), Math.floor(n / 10) % 10, n % 10];
+    const distinct = new Set(d).size;
+    if (playType === 'zu3' && distinct !== 2) continue;
+    if (playType === 'zu6' && distinct !== 3) continue;
+    const value = playType === 'zhixuan' ? n : Number([...d].sort().join(''));
+    if (playType !== 'zhixuan') {
+      if (seen.has(value)) continue;
+      seen.add(value);
+    }
     if (avoid.some(a => d.includes(a))) continue;
     if (must.length && !must.every(m => d.includes(m))) continue;
     const sum = d[0] + d[1] + d[2];
@@ -688,7 +698,7 @@ function genRecommend() {
     const span = Math.max(...d) - Math.min(...d);
     if (!inR(span, spanR)) continue;
     let w = 1 + testDigits.filter(t => d.includes(t)).length * 1.5;
-    candidates.push({ n, w });
+    candidates.push({ n: value, w });
   }
 
   const picks = [];
