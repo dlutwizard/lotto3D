@@ -408,7 +408,7 @@ $('addBetBtn').onclick = () => {
   saveBets(bets);
   renderBets();
   renderStats();
-  renderDayResult(date);
+  renderDayResult($('drawDate').value || todayStr());
   $('betNum').value = '';
   $('betNum').focus();
 };
@@ -487,7 +487,7 @@ function renderDayResult(date) {
   const netCls = day.net > 0 ? 'win' : day.net < 0 ? 'lose' : 'flat';
   panel.innerHTML =
     '<div class="result-header ' + (day.totalWin > 0 ? 'win' : 'lose') + '">' +
-      '<span class="label">开奖号 <b style="letter-spacing:2px">' + day.winNum + '</b></span>' +
+      '<span class="label">' + date + ' 开奖号 <b style="letter-spacing:2px">' + day.winNum + '</b></span>' +
       '<span class="amount">' + (day.totalWin > 0 ? '+' : '') + money(day.totalWin) + ' 元</span>' +
     '</div>' +
     '<div class="result-header ' + netCls + '">' +
@@ -593,7 +593,7 @@ async function fetchOfficialDraws(showFeedback) {
     const selected = $('drawDate').value || todayStr();
     if (draws[selected]) $('winNum').value = draws[selected];
     renderStats();
-    if (draws[selected] && getBets().some(b => b.date === selected)) renderDayResult(selected);
+    renderDayResult(selected);
     const today = draws[todayStr()];
     if (status) {
       if (today) {
@@ -870,6 +870,7 @@ function switchView(name) {
     t.setAttribute('aria-selected', active ? 'true' : 'false');
   });
   if (name === 'stats') renderStats();
+  if (name === 'bets') renderDayResult($('drawDate').value || todayStr());
   localStorage.setItem('lotto_view', name);
   document.querySelector('.main').scrollTop = 0;
 }
@@ -884,7 +885,7 @@ const todayDraw = getDraws()[todayStr()];
 if (todayDraw) $('winNum').value = todayDraw;
 renderBets();
 renderStats();
-if (todayDraw) renderDayResult(todayStr());
+renderDayResult($('drawDate').value || todayStr());
 fetchOfficialDraws(false);
 setInterval(() => {
   if (inDrawFetchWindow() && !getDraws()[todayStr()]) fetchOfficialDraws(false);
