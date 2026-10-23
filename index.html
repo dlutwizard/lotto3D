@@ -285,6 +285,9 @@ input[type=date] { max-width: 165px; }
         <button class="btn" id="saveBtn" style="flex:1">保存策略</button>
         <button class="btn ghost" id="genBtn" style="flex:1">生成今日推荐</button>
       </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn danger" id="clearStrategyBtn" style="flex:1">一键清空策略</button>
+      </div>
     </div>
 
     <!-- 试机号 -->
@@ -732,6 +735,20 @@ function genRecommend() {
 }
 $('saveBtn').onclick = () => { saveState(); alert('策略已保存'); };
 $('genBtn').onclick = genRecommend;
+$('clearStrategyBtn').onclick = () => {
+  if (!confirm('确定清空所有策略条件？清空后玩法恢复为直选。')) return;
+  KEYS.forEach(k => {
+    localStorage.removeItem('lotto_' + k);
+    if ($(k)) $(k).value = '';
+  });
+  $('playType').value = 'zhixuan';
+  $('betSize').value = '2';
+  saveState();
+  $('recList').innerHTML = '';
+  $('recCount').textContent = '';
+  $('recCost').textContent = '';
+  $('resultCard').style.display = 'none';
+};
 
 // === 盈亏日历 ===
 let viewYear = new Date().getFullYear();
