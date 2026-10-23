@@ -261,11 +261,11 @@ input[type=date] { max-width: 165px; }
       </div>
       <div class="row">
         <label>必含数字</label>
-        <input type="text" id="mustInclude" placeholder="如 3 7（空格分隔）" />
+        <input type="text" id="mustInclude" placeholder="如 3,7 或 3 7（逗号/空格分隔）" />
       </div>
       <div class="row">
         <label>排除数字</label>
-        <input type="text" id="avoid" placeholder="如 0 9（空格分隔）" />
+        <input type="text" id="avoid" placeholder="如 0,9 或 0 9（逗号/空格分隔）" />
       </div>
       <div class="row">
         <label>和值范围</label>
@@ -655,7 +655,9 @@ function saveState() {
   KEYS.forEach(k => { if ($(k)) localStorage.setItem('lotto_' + k, $(k).value); });
 }
 function parseDigits(v) {
-  return (v || '').split(/[^0-9]/).filter(c => c !== '').map(Number);
+  const normalized = String(v || '').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  const digits = normalized.match(/\d/g) || [];
+  return [...new Set(digits.map(Number))];
 }
 function parseRange(minV, maxV, dmax) {
   const a = (minV || '').trim();
