@@ -496,6 +496,56 @@ function renderDayResult(date) {
     '</div>' + details;
 }
 
+const SINA_URL = 'https://lotto.sina.cn/trend/lotto_zst_proxy.d.json?lottoType=3d&actionType=chzs&sourceName=bd';
+
+function parseSinaHtml(html) {
+  let best = null;
+  const rows = html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g);
+  for (const match of rows) {
+    const row = match[1];
+    const issueMatch = row.match(/<td[^>]*>(\d{7})<\/td>/);
+    if (!issueMatch) continue;
+    const fens = [...row.matchAll(/<td class="fen">([^<]+)<\/td>/g)].map(m => m[1].trim());
+    const weekday = Number(fens[0]);
+    let number = fens.length >= 2 ? fens[1] : '';
+    if (!/^\d{3}$/.test(number)) {
+      const bg = row.match(/<td class="bg3">(\d{3})<\/td>/);
+      number = bg ? bg[1] : '';
+    }
+    if (!/^\d{3}$/.test(number)) continue;
+    if (!(weekday >= 1 && weekday <= 7)) continue;
+    const issue = Number(issueMatch[1]);
+    if (!best || issue > best.issue) best = { issue, weekday, number };
+  }
+  return best;
+}
+
+function weekdayOfDate(s) {
+  const p = s.split('-').map(Number);
+  return new Date(p[0], p[1] - 1, p[2]).getDay() || 7;
+}
+
+async function fetchSinaToday() {
+  const res = await fetch(SINA_URL + '&_=' + Date.now(), { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  const data = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+  const html = data && data.result && data.result.data && data.result.data.data;
+  if (typeof html !== 'string') throw new Error('bad payload');
+  const best = parseSinaHtml(html);
+  if (!best) throw new Error('no row');
+  const today = todayStr();
+  if (best.weekday !== weekdayOfDate(today)) return { number: '', issue: best.issue };
+  const lastIssue = parseInt(localStorage.getItem('lotto_sina_issue') || '0', 10);
+  if (best.issue <= lastIssue) return { number: '', issue: best.issue };
+  const draws = getDraws();
+  if (draws[today] && draws[today] !== best.number) return { number: '', issue: best.issue };
+  draws[today] = best.number;
+  saveDraws(draws);
+  localStorage.setItem('lotto_sina_issue', String(best.issue));
+  return { number: best.number, issue: best.issue };
+}
+
 let drawFetching = false;
 function drawDeadlinePassed() {
   const now = new Date();
@@ -513,44 +563,54 @@ async function fetchOfficialDraws(showFeedback) {
   const status = $('fetchStatus');
   if (btn) { btn.disabled = true; btn.textContent = '获取中…'; }
   if (status && showFeedback) status.textContent = '正在获取开奖数据…';
+  let changed = 0;
+  let sinaOk = false;
+  let staticOk = false;
   try {
-    const res = await fetch('draws.json?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    const source = data && data.draws ? data.draws : {};
-    const local = getDraws();
-    let changed = 0;
-    Object.keys(source).forEach(date => {
-      const rec = source[date];
-      const num = typeof rec === 'string' ? rec : rec && rec.number;
-      if (/^\d{3}$/.test(num || '') && local[date] !== num) {
-        local[date] = num;
-        changed++;
-      }
-    });
-    saveDraws(local);
+    try {
+      const sina = await fetchSinaToday();
+      if (sina.number) changed++;
+      sinaOk = true;
+    } catch (e) {}
+    try {
+      const res = await fetch('draws.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const source = data && data.draws ? data.draws : {};
+      const local = getDraws();
+      Object.keys(source).forEach(date => {
+        const rec = source[date];
+        const num = typeof rec === 'string' ? rec : rec && rec.number;
+        if (/^\d{3}$/.test(num || '') && local[date] !== num) {
+          local[date] = num;
+          changed++;
+        }
+      });
+      saveDraws(local);
+      staticOk = true;
+    } catch (e) {}
+    const draws = getDraws();
     const selected = $('drawDate').value || todayStr();
-    if (local[selected]) $('winNum').value = local[selected];
+    if (draws[selected]) $('winNum').value = draws[selected];
     renderStats();
-    if (local[selected] && getBets().some(b => b.date === selected)) renderDayResult(selected);
-    const today = local[todayStr()];
+    if (draws[selected] && getBets().some(b => b.date === selected)) renderDayResult(selected);
+    const today = draws[todayStr()];
     if (status) {
-      status.textContent = today
-        ? '✅ 已获取今日开奖号 ' + today
-        : drawDeadlinePassed()
-          ? '⚠️ 21:40 前未获取到今日开奖号，请手动填写'
-          : '数据源暂无今日开奖号，可稍后重试或手动填写';
-    }
-    return changed;
-  } catch (err) {
-    if (status) {
-      status.textContent = location.protocol === 'file:'
-        ? '本地预览无法自动获取，线上版本可用'
-        : drawDeadlinePassed()
+      if (today) {
+        status.textContent = '✅ 已获取今日开奖号 ' + today;
+      } else if (location.protocol === 'file:') {
+        status.textContent = '本地预览无法自动获取，线上版本可用';
+      } else if (!sinaOk && !staticOk) {
+        status.textContent = drawDeadlinePassed()
           ? '⚠️ 今日开奖号获取失败，请手动填写'
           : '自动获取失败，请稍后重试或手动填写';
+      } else {
+        status.textContent = drawDeadlinePassed()
+          ? '⚠️ 21:40 前未获取到今日开奖号，请手动填写'
+          : '数据源暂无今日开奖号，可稍后重试或手动填写';
+      }
     }
-    return 0;
+    return changed;
   } finally {
     drawFetching = false;
     if (btn) { btn.disabled = false; btn.textContent = '自动获取开奖号'; }

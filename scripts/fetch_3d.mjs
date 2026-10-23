@@ -53,8 +53,60 @@ function findIssueDate(draws, issue) {
   });
 }
 
+function maxIssueRecord(draws) {
+  let maxIssue = 0;
+  let maxDate = '';
+  Object.keys(draws).forEach(date => {
+    const rec = draws[date];
+    const issue = Number(rec && typeof rec === 'object' ? rec.issue : 0);
+    if (Number.isFinite(issue) && issue > maxIssue) {
+      maxIssue = issue;
+      maxDate = date;
+    }
+  });
+  return { maxIssue, maxDate };
+}
+
+function addDays(date, days) {
+  const parts = date.split('-').map(Number);
+  const d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// 3D 每天开奖，期号连续。用于把延迟运行或跨天补抓的结果对回真实日期。
+function deriveIssueDate(draws, issue) {
+  const { maxIssue, maxDate } = maxIssueRecord(draws);
+  if (!maxIssue || !maxDate) return null;
+  const delta = issue - maxIssue;
+  if (delta < 1 || delta > 3) return null;
+  return addDays(maxDate, delta);
+}
+
+function parseSinaHtml(html) {
+  let best = null;
+  const rows = html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g);
+  for (const match of rows) {
+    const row = match[1];
+    const issueMatch = row.match(/<td[^>]*>(\d{7})<\/td>/);
+    if (!issueMatch) continue;
+    const fens = [...row.matchAll(/<td class="fen">([^<]+)<\/td>/g)].map(m => m[1].trim());
+    const weekday = Number(fens[0]);
+    let number = fens.length >= 2 ? fens[1] : '';
+    if (!/^\d{3}$/.test(number)) {
+      const bg = row.match(/<td class="bg3">(\d{3})<\/td>/);
+      number = bg ? bg[1] : '';
+    }
+    if (!/^\d{3}$/.test(number)) continue;
+    if (!(weekday >= 1 && weekday <= 7)) continue;
+    const issue = Number(issueMatch[1]);
+    if (!best || issue > best.issue) best = { issue, weekday, number };
+  }
+  return best;
+}
+
 async function fetchSinaLatest() {
-  const response = await fetch(SINA_SOURCE, {
+  const response = await fetch(SINA_SOURCE + '&_=' + Date.now(), {
     headers: {
       'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
       'Referer': 'https://lotto.sina.cn/',
@@ -70,20 +122,7 @@ async function fetchSinaLatest() {
   const html = data && data.result && data.result.data && data.result.data.data;
   if (typeof html !== 'string') throw new Error('Sina HTML missing');
 
-  let best = null;
-  const rows = html.matchAll(/<tr class="hasbb">([\s\S]*?)<\/tr>/g);
-  for (const match of rows) {
-    const row = match[1];
-    const issueMatch = row.match(/<td>(\d{7})<\/td>/);
-    const fens = [...row.matchAll(/<td class="fen">([^<]+)<\/td>/g)].map(m => m[1].trim());
-    if (!issueMatch || fens.length < 2) continue;
-    const issue = Number(issueMatch[1]);
-    const weekday = Number(fens[0]);
-    const number = fens[1];
-    if (!/^\d{3}$/.test(number)) continue;
-    if (!best || issue > best.issue) best = { issue, weekday, number };
-  }
-  return best;
+  return parseSinaHtml(html);
 }
 
 async function fetchOfficial() {
@@ -158,12 +197,16 @@ try {
     const todayWeekday = weekdayOf(now.date);
     if (existingDate) {
       console.log('Sina latest issue ' + sina.issue + ' already stored for ' + existingDate + '.');
-    } else if (sina.issue > latestIssue(draws) && sina.weekday === todayWeekday) {
-      draws[now.date] = { issue: String(sina.issue), number: sina.number, source: 'sina' };
-      changed++;
-      console.log('Sina: today ' + now.date + ' issue ' + sina.issue + ' number ' + sina.number);
     } else {
-      report('Sina latest issue ' + sina.issue + ' (weekday ' + sina.weekday + ') is not today ' + now.date + ' (weekday ' + todayWeekday + ').');
+      const derivedDate = deriveIssueDate(draws, sina.issue);
+      const targetDate = derivedDate || (sina.weekday === todayWeekday ? now.date : null);
+      if (targetDate && !draws[targetDate] && targetDate <= now.date) {
+        draws[targetDate] = { issue: String(sina.issue), number: sina.number, source: 'sina' };
+        changed++;
+        console.log('Sina: ' + targetDate + ' issue ' + sina.issue + ' number ' + sina.number);
+      } else {
+        report('Sina latest issue ' + sina.issue + ' (weekday ' + sina.weekday + ') does not match ' + now.date + ' (weekday ' + todayWeekday + ').');
+      }
     }
   }
 } catch (err) {
