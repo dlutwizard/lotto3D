@@ -954,7 +954,7 @@ function escapeHtml(value) {
 }
 
 // === 蜂巢九宫寻宝图（按当期规则复刻） ===
-const HC = { cols: 12, rows: 16, w: 46, h: 48, rs: 36, left: 10, top: 26 };
+const HC = { cols: 15, rows: 17, w: 48, h: 50, rs: 37.5, left: 12, top: 150 };
 const HC_COLORS = ['#ff2028', '#0aa6dc', '#86bd3d'];
 
 function hcRand(seed) {
@@ -1087,7 +1087,7 @@ function hcBuildChart(prevNumber, issue) {
     for (let c = 0; c < HC.cols; c++) {
       const cell = cellAt(r, c);
       const p = center(r, c);
-      digitsSvg.push('<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 1).toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" font-size="23" font-weight="800" fill="#fff" stroke="#0b5a1e" stroke-width="1.5" paint-order="stroke">' + cell.digit + '</text>');
+      digitsSvg.push('<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 1).toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" font-size="26" font-weight="800" fill="#fff" stroke="#0b5a1e" stroke-width="1.6" paint-order="stroke">' + cell.digit + '</text>');
     }
   }
   const edgeDefs = [];
@@ -1110,20 +1110,28 @@ function hcBuildChart(prevNumber, issue) {
   });
   const edgePath = edgeDefs.join('');
   const pool = windowCells.map(cell => cell.digit).join(' ');
-  const svg = '<svg viewBox="0 0 600 610" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
+  const noteY = HC.top + (HC.rows - 1) * HC.rs + 70;
+  const svg = '<svg viewBox="0 0 780 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
     '<defs>' +
-    '<linearGradient id="hcBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4fcf2"/><stop offset=".5" stop-color="#e6f5e5"/><stop offset="1" stop-color="#d9efda"/></linearGradient>' +
-    '<radialGradient id="hcGlow" cx=".5" cy=".45" r=".62"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+    '<linearGradient id="hcBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6fd09e"/><stop offset=".5" stop-color="#55c28b"/><stop offset="1" stop-color="#3fb37c"/></linearGradient>' +
+    '<radialGradient id="hcGlow" cx=".5" cy=".45" r=".62"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+    '<pattern id="hcLines" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(24)"><path d="M0 0V26" stroke="#fff" stroke-width="1" opacity=".12"/></pattern>' +
     '</defs>' +
-    '<rect width="600" height="610" fill="url(#hcBg)"/>' +
-    '<g opacity=".22" stroke="#fff" stroke-width="48" fill="none"><path d="M-50 130L230 -40"/><path d="M470 650L760 470"/><path d="M20 560L230 690"/></g>' +
-    '<rect width="600" height="610" fill="url(#hcGlow)"/>' +
+    '<rect width="780" height="900" fill="url(#hcBg)"/>' +
+    '<rect width="780" height="900" fill="url(#hcLines)"/>' +
+    '<rect width="780" height="900" fill="url(#hcGlow)"/>' +
+    '<text x="390" y="52" text-anchor="middle" font-size="48" font-weight="900" letter-spacing="2" fill="#fff" stroke="#237a4c" stroke-width="2" paint-order="stroke">蜂巢九宫寻宝图</text>' +
+    '<text x="390" y="105" text-anchor="middle" font-size="31" font-weight="800"><tspan fill="#ffd54a" stroke="#a46a00" stroke-width="1" paint-order="stroke">福彩3D</tspan><tspan fill="#fff" stroke="#237a4c" stroke-width="1" paint-order="stroke"> 第' + issue + '期</tspan></text>' +
     '<g>' + body + '</g>' +
     fill +
     '<g>' + digitsSvg.join('') + '</g>' +
     '<g fill="none" stroke="rgba(31,90,45,.22)" stroke-width="11" stroke-linecap="round">' + edgePath + '</g>' +
     '<g fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".6">' + edgePath + '</g>' +
     '<g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round">' + edgePath + '</g>' +
+    '<text x="26" y="' + noteY + '" font-size="19" font-weight="700" fill="#fff" opacity=".92">&lt;上期</text>' +
+    '<text x="405" y="' + (noteY - 3) + '" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">说明：选中蜂窝，移动位置，找到上期开奖号【' + prevNumber + '】</text>' +
+    '<text x="405" y="' + (noteY + 30) + '" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">用上期开奖号周边的数字作为下期参考号码。</text>' +
+    '<text x="764" y="892" text-anchor="end" font-size="13" fill="#fff" opacity=".6">仅供娱乐参考</text>' +
     '</svg>';
   return { svg, pool, count: windowCells.length };
 }
@@ -1135,17 +1143,8 @@ function buildHoneycombCard(staticDraws) {
   const chart = hcBuildChart(latest.number, targetIssue);
   const chips = chart.pool.split(' ').map(d => '<span class="hc-digit">' + d + '</span>').join('');
   return '<article class="ref-card hc-card">' +
-    '<div class="ref-card-head">' +
-      '<div class="ref-avatar hc-avatar">蜂</div>' +
-      '<div class="ref-heading">' +
-        '<div class="ref-name">蜂巢九宫寻宝图<span class="ref-badge">每日图</span></div>' +
-        '<div class="ref-meta">福彩3D 第' + targetIssue + '期 · 上期开奖 ' + latest.number + '</div>' +
-      '</div>' +
-    '</div>' +
     '<div class="hc-chart">' + chart.svg + '</div>' +
     '<div class="hc-info">' +
-      '<p class="hc-tip">说明：选中蜂窝，移动位置，找到上期开奖号【<b>' + latest.number + '</b>】</p>' +
-      '<p class="hc-tip">用上期开奖号周边的数字作为下期参考号码。</p>' +
       '<div class="hc-pool"><span class="hc-pool-label">窗口参考号</span>' + chips +
         '<button class="hc-copy" type="button" data-pool="' + chart.pool + '">复制</button></div>' +
       '<p class="hc-note">蜂窝图为规则复刻示意，仅供娱乐参考。</p>' +
