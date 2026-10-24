@@ -2,6 +2,9 @@ name: Update 3D draw results
 
 on:
   schedule:
+    # 20:10 / 20:40 / 21:10 China time: catch the next-day reference early
+    - cron: '10,40 12 * * *'
+    - cron: '10 13 * * *'
     # 21:20-21:40 China time (UTC+8) for the draw result
     - cron: '20,25,30,35,40 13 * * *'
     # 22:00 and 22:30 China time for the next day's chart
