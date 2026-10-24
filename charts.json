@@ -4,12 +4,12 @@
     {
       "issue": "2026283",
       "title": "蜂巢九宫寻宝图 第2026283期",
-      "image": "charts/2026283.webp",
-      "source": "https://www.800820.net/p/11523505.html",
-      "width": 600,
-      "height": 814,
-      "cropTop": 194,
-      "cropBottom": 105,
+      "image": "charts/2026283-wechat.jpg",
+      "source": "https://mp.weixin.qq.com/s/zAaG9LVRLUS3aEcOgZtX5g",
+      "account": "乐在玩彩",
+      "layout": "full",
+      "width": 864,
+      "height": 1946,
       "fetchedAt": "2026-10-24T04:57:07.200Z"
     }
   ]

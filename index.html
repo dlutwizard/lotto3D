@@ -141,6 +141,7 @@ input[type=date] { max-width: 165px; }
 .chart-toolbar h2 { margin-bottom: 2px; }
 .chart-toolbar .tip { margin: 0; }
 .chart-sheet { position: relative; overflow: hidden; border-radius: 16px; background: #035e2b; box-shadow: 0 8px 22px rgba(1, 63, 28, .2); }
+.chart-sheet.layout-full .chart-sheet-head, .chart-sheet.layout-full .chart-sheet-foot { display: none; }
 .chart-sheet-head { position: relative; overflow: hidden; padding: 14px 14px 9px; text-align: center; background: radial-gradient(circle at 50% 0%, #128145 0%, #05652f 48%, #034c22 100%); }
 .chart-sheet-head::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .18; background-image: linear-gradient(30deg, transparent 48%, #c5f3a7 49%, #c5f3a7 51%, transparent 52%), linear-gradient(150deg, transparent 48%, #c5f3a7 49%, #c5f3a7 51%, transparent 52%); background-size: 26px 45px; }
 .chart-bee { position: absolute; z-index: 1; left: 14px; top: 13px; font-size: 24px; transform: rotate(-12deg); filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
@@ -148,7 +149,10 @@ input[type=date] { max-width: 165px; }
 .chart-sheet-title { position: relative; z-index: 2; color: #fffbe6; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: clamp(22px, 5.8vw, 32px); font-weight: 900; line-height: 1.2; letter-spacing: 2px; text-shadow: 0 2px 0 #064a23, 0 0 8px rgba(0,0,0,.4); }
 .chart-sheet-sub { position: relative; z-index: 2; margin-top: 4px; color: #ffdf69; font-size: clamp(15px, 4vw, 20px); font-weight: 800; letter-spacing: .5px; text-shadow: 0 1px 0 #6d4200, 0 0 6px rgba(0,0,0,.35); }
 .chart-wrap { position: relative; overflow: hidden; aspect-ratio: 600 / 526; background: #02602c; }
+.chart-wrap a { display: block; width: 100%; }
 .chart-wrap img { position: absolute; top: var(--chart-img-top, -36.9%); left: 0; display: block; width: 100%; height: auto; }
+.chart-wrap.is-full { aspect-ratio: auto; background: #035e2b; }
+.chart-wrap.is-full img { position: static; }
 .chart-wrap.is-empty { aspect-ratio: auto; min-height: 180px; display: grid; place-items: center; }
 .chart-wrap .empty-text { color: #d7f5cf; padding: 56px 16px; }
 .chart-sheet-foot { position: relative; padding: 10px 14px 13px; text-align: center; color: #fff8d8; font-size: clamp(13px, 3.5vw, 16px); font-weight: 700; letter-spacing: .5px; background: linear-gradient(180deg, #067338, #034d22); border-top: 1px solid rgba(255, 222, 101, .4); text-shadow: 0 1px 1px rgba(0,0,0,.35); }
@@ -185,7 +189,7 @@ input[type=date] { max-width: 165px; }
           </div>
           <button class="btn ghost" id="chartRefreshBtn" type="button" style="max-width:96px">刷新</button>
         </div>
-        <div class="chart-sheet">
+        <div class="chart-sheet" id="chartSheet">
           <div class="chart-sheet-head">
             <span class="chart-bee" aria-hidden="true">🐝</span>
             <svg class="chart-comb" viewBox="0 0 60 68" aria-hidden="true">
@@ -953,17 +957,32 @@ let chartLoading = false;
 
 function showChart(item) {
   $('chartIssue').textContent = '第' + item.issue + '期';
+  const isFull = item.layout === 'full';
+  $('chartSheet').classList.toggle('layout-full', isFull);
+  const wrap = $('chartWrap');
+  wrap.classList.remove('is-empty');
+  wrap.classList.toggle('is-full', isFull);
+  if (isFull) {
+    wrap.style.aspectRatio = '';
+    wrap.style.removeProperty('--chart-img-top');
+    wrap.innerHTML = '<a href="' + item.image + '" target="_blank" rel="noopener"><img src="' + item.image + '" alt="蜂巢九宫寻宝图 第' + item.issue + '期"></a>';
+    $('chartSource').innerHTML = '来源：<a href="' + item.source + '" target="_blank" rel="noopener">' + (item.account || item.title) + '</a>';
+    renderChartHistory(item);
+    return;
+  }
   const width = Number(item.width) || 600;
   const height = Number(item.height) || 814;
   const cropTop = Number(item.cropTop) || Math.round(height * 0.238);
   const cropBottom = Number(item.cropBottom) || Math.round(height * 0.129);
   const cropHeight = Math.max(1, height - cropTop - cropBottom);
-  const wrap = $('chartWrap');
-  wrap.classList.remove('is-empty');
   wrap.style.aspectRatio = width + ' / ' + cropHeight;
   wrap.style.setProperty('--chart-img-top', (-cropTop / cropHeight * 100).toFixed(2) + '%');
   wrap.innerHTML = '<a href="' + item.image + '" target="_blank" rel="noopener"><img src="' + item.image + '" alt="蜂巢九宫寻宝图 第' + item.issue + '期"></a>';
   $('chartSource').innerHTML = '来源：<a href="' + item.source + '" target="_blank" rel="noopener">' + item.title + '</a>';
+  renderChartHistory(item);
+}
+
+function renderChartHistory(item) {
   const history = $('chartHistory');
   history.innerHTML = '';
   chartList.slice(0, 8).forEach(c => {
@@ -989,6 +1008,8 @@ async function loadChart() {
     showChart(list[0]);
   } catch (err) {
     $('chartIssue').textContent = '暂无图';
+    $('chartSheet').classList.remove('layout-full');
+    $('chartWrap').classList.remove('is-full');
     $('chartWrap').classList.add('is-empty');
     $('chartWrap').innerHTML = '<div class="empty-text">暂时没有获取到寻宝图，请稍后再试</div>';
     $('chartSource').textContent = '';
