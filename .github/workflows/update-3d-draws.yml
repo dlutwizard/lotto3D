@@ -6,6 +6,8 @@ on:
     - cron: '20,25,30,35,40 13 * * *'
     # 22:00 and 22:30 China time for the next day's chart
     - cron: '0,30 14 * * *'
+    # 08:30 and 12:30 China time for chart refresh
+    - cron: '30 0,4 * * *'
   workflow_dispatch:
 
 permissions:
