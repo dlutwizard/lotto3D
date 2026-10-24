@@ -135,32 +135,30 @@ input[type=date] { max-width: 165px; }
 .data-actions .btn { flex: 1; text-align: center; }
 .import-label { display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: inherit; }
 
-/* 寻宝图 */
-.chart-page { padding: 12px; }
-.chart-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.chart-toolbar h2 { margin-bottom: 2px; }
-.chart-toolbar .tip { margin: 0; }
-.chart-sheet { position: relative; overflow: hidden; border-radius: 16px; background: #035e2b; box-shadow: 0 8px 22px rgba(1, 63, 28, .2); }
-.chart-sheet.layout-full .chart-sheet-head, .chart-sheet.layout-full .chart-sheet-foot { display: none; }
-.chart-sheet-head { position: relative; overflow: hidden; padding: 14px 14px 9px; text-align: center; background: radial-gradient(circle at 50% 0%, #128145 0%, #05652f 48%, #034c22 100%); }
-.chart-sheet-head::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .18; background-image: linear-gradient(30deg, transparent 48%, #c5f3a7 49%, #c5f3a7 51%, transparent 52%), linear-gradient(150deg, transparent 48%, #c5f3a7 49%, #c5f3a7 51%, transparent 52%); background-size: 26px 45px; }
-.chart-bee { position: absolute; z-index: 1; left: 14px; top: 13px; font-size: 24px; transform: rotate(-12deg); filter: drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
-.chart-comb { position: absolute; z-index: 1; right: 12px; top: 8px; width: 46px; height: 50px; color: #f5dd78; opacity: .72; }
-.chart-sheet-title { position: relative; z-index: 2; color: #fffbe6; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: clamp(22px, 5.8vw, 32px); font-weight: 900; line-height: 1.2; letter-spacing: 2px; text-shadow: 0 2px 0 #064a23, 0 0 8px rgba(0,0,0,.4); }
-.chart-sheet-sub { position: relative; z-index: 2; margin-top: 4px; color: #ffdf69; font-size: clamp(15px, 4vw, 20px); font-weight: 800; letter-spacing: .5px; text-shadow: 0 1px 0 #6d4200, 0 0 6px rgba(0,0,0,.35); }
-.chart-wrap { position: relative; overflow: hidden; aspect-ratio: 600 / 526; background: #02602c; }
-.chart-wrap a { display: block; width: 100%; }
-.chart-wrap img { position: absolute; top: var(--chart-img-top, -36.9%); left: 0; display: block; width: 100%; height: auto; }
-.chart-wrap.is-full { aspect-ratio: auto; background: #035e2b; }
-.chart-wrap.is-full img { position: static; }
-.chart-wrap.is-empty { aspect-ratio: auto; min-height: 180px; display: grid; place-items: center; }
-.chart-wrap .empty-text { color: #d7f5cf; padding: 56px 16px; }
-.chart-sheet-foot { position: relative; padding: 10px 14px 13px; text-align: center; color: #fff8d8; font-size: clamp(13px, 3.5vw, 16px); font-weight: 700; letter-spacing: .5px; background: linear-gradient(180deg, #067338, #034d22); border-top: 1px solid rgba(255, 222, 101, .4); text-shadow: 0 1px 1px rgba(0,0,0,.35); }
-.chart-sheet-foot::before { content: "✦"; color: #ffe071; margin-right: 6px; }
-.chart-sheet-foot::after { content: "✦"; color: #ffe071; margin-left: 6px; }
-.chart-history { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.chart-history button { padding: 4px 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text2); font-size: 12px; font-family: inherit; cursor: pointer; }
-.chart-history button.active { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+/* 今日参考 */
+.ref-page { padding: 12px; }
+.ref-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.ref-toolbar h2 { margin-bottom: 2px; }
+.ref-toolbar .tip { margin: 0; }
+.ref-list { display: flex; flex-direction: column; gap: 12px; }
+.ref-card { overflow: hidden; border: 1px solid #dce8dd; border-radius: 16px; background: #fff; box-shadow: 0 5px 16px rgba(20, 83, 45, .07); }
+.ref-card-head { display: flex; align-items: center; gap: 10px; padding: 12px 13px; background: linear-gradient(135deg, #f1faf1, #e4f4e6); border-bottom: 1px solid #dbeadb; }
+.ref-avatar { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #16a34a, #166534); color: #fff; font-size: 17px; font-weight: 800; box-shadow: 0 2px 6px rgba(22, 101, 52, .25); }
+.ref-heading { flex: 1; min-width: 0; }
+.ref-name { display: flex; align-items: center; gap: 6px; color: #14532d; font-size: 17px; font-weight: 800; }
+.ref-badge { padding: 2px 6px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 700; }
+.ref-meta { margin-top: 2px; overflow: hidden; color: #64748b; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.ref-open { flex: none; color: #15803d; font-size: 11px; font-weight: 700; text-decoration: none; }
+.ref-body { padding: 12px 13px 13px; }
+.ref-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ref-item { padding: 8px 6px; border: 1px solid #edf2f7; border-radius: 10px; background: #f8fafc; text-align: center; }
+.ref-label { margin-bottom: 4px; color: #64748b; font-size: 11px; }
+.ref-value { color: #0f172a; font-size: 14px; font-weight: 800; line-height: 1.35; letter-spacing: .2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ref-notes { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.ref-note { display: flex; align-items: baseline; gap: 8px; padding: 8px 10px; border: 1px solid #ffedd5; border-radius: 10px; background: #fff7ed; }
+.ref-note-label { flex: none; color: #c2410c; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.ref-note-text { color: #7c2d12; font-size: 13px; font-weight: 600; }
+.ref-empty { padding: 42px 16px; text-align: center; color: #64748b; }
 </style>
 </head>
 <body>
@@ -179,36 +177,19 @@ input[type=date] { max-width: 165px; }
   </div>
   <div class="main">
 
-    <!-- 寻宝图 -->
+    <!-- 今日参考 -->
     <section class="view" id="view-chart">
-      <div class="card chart-page">
-        <div class="chart-toolbar">
+      <div class="card ref-page">
+        <div class="ref-toolbar">
           <div>
-            <h2>🍯 今日参考</h2>
-            <p class="tip">每日自动更新，供选号参考</p>
+            <h2>📌 今日参考</h2>
+            <p class="tip">每日自动更新 · 仅供参考</p>
           </div>
-          <button class="btn ghost" id="chartRefreshBtn" type="button" style="max-width:96px">刷新</button>
+          <button class="btn ghost" id="refRefreshBtn" type="button" style="max-width:96px">刷新</button>
         </div>
-        <div class="chart-sheet" id="chartSheet">
-          <div class="chart-sheet-head">
-            <span class="chart-bee" aria-hidden="true">🐝</span>
-            <svg class="chart-comb" viewBox="0 0 60 68" aria-hidden="true">
-              <g fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 4 32 10.5v13L21 30 10 23.5v-13Z"/>
-                <path d="M42 27 53 33.5v13L42 53 31 46.5v-13Z"/>
-                <path d="M18 44 29 50.5v13L18 70 7 63.5v-13Z"/>
-              </g>
-            </svg>
-            <div class="chart-sheet-title">蜂巢九宫寻宝图</div>
-            <div class="chart-sheet-sub">福彩3D <span id="chartIssue">加载中…</span></div>
-          </div>
-          <div class="chart-wrap" id="chartWrap">
-            <div class="empty-text">正在加载…</div>
-          </div>
-          <div class="chart-sheet-foot">用上期开奖号周边的数字作为下期参考号码</div>
+        <div class="ref-list" id="refList">
+          <div class="ref-empty">正在加载…</div>
         </div>
-        <div class="chart-history" id="chartHistory"></div>
-        <p class="tip" id="chartSource" style="margin-top:10px"></p>
       </div>
     </section>
 
@@ -951,73 +932,69 @@ $('importFile').onchange = async (e) => {
   }
 };
 
-// === 寻宝图 ===
-let chartList = [];
-let chartLoading = false;
+// === 今日参考 ===
+let refLoading = false;
 
-function showChart(item) {
-  $('chartIssue').textContent = '第' + item.issue + '期';
-  const isFull = item.layout === 'full';
-  $('chartSheet').classList.toggle('layout-full', isFull);
-  const wrap = $('chartWrap');
-  wrap.classList.remove('is-empty');
-  wrap.classList.toggle('is-full', isFull);
-  if (isFull) {
-    wrap.style.aspectRatio = '';
-    wrap.style.removeProperty('--chart-img-top');
-    wrap.innerHTML = '<a href="' + item.image + '" target="_blank" rel="noopener"><img src="' + item.image + '" alt="蜂巢九宫寻宝图 第' + item.issue + '期"></a>';
-    $('chartSource').innerHTML = '来源：<a href="' + item.source + '" target="_blank" rel="noopener">' + (item.account || item.title) + '</a>';
-    renderChartHistory(item);
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[ch]);
+}
+
+function renderReferences(data) {
+  const list = $('refList');
+  const items = Array.isArray(data.items) ? data.items : [];
+  if (!items.length) {
+    list.innerHTML = '<div class="ref-empty">暂时没有获取到今日参考，请稍后再试</div>';
     return;
   }
-  const width = Number(item.width) || 600;
-  const height = Number(item.height) || 814;
-  const cropTop = Number(item.cropTop) || Math.round(height * 0.238);
-  const cropBottom = Number(item.cropBottom) || Math.round(height * 0.129);
-  const cropHeight = Math.max(1, height - cropTop - cropBottom);
-  wrap.style.aspectRatio = width + ' / ' + cropHeight;
-  wrap.style.setProperty('--chart-img-top', (-cropTop / cropHeight * 100).toFixed(2) + '%');
-  wrap.innerHTML = '<a href="' + item.image + '" target="_blank" rel="noopener"><img src="' + item.image + '" alt="蜂巢九宫寻宝图 第' + item.issue + '期"></a>';
-  $('chartSource').innerHTML = '来源：<a href="' + item.source + '" target="_blank" rel="noopener">' + item.title + '</a>';
-  renderChartHistory(item);
+  list.innerHTML = items.map(item => {
+    const fields = (item.fields || []).map(f => `
+      <div class="ref-item">
+        <div class="ref-label">${escapeHtml(f.label)}</div>
+        <div class="ref-value">${escapeHtml(f.value)}</div>
+      </div>`).join('');
+    const notes = (item.notes || []).map(n => `
+      <div class="ref-note">
+        <span class="ref-note-label">${escapeHtml(n.label)}</span>
+        <span class="ref-note-text">${escapeHtml(n.text)}</span>
+      </div>`).join('');
+    const source = item.source
+      ? `<a class="ref-open" href="${escapeHtml(item.source)}" target="_blank" rel="noopener">原文 ↗</a>`
+      : '';
+    const meta = [`第${escapeHtml(item.issue)}期`, item.publishedAt].filter(Boolean).join(' · ');
+    return `
+      <article class="ref-card">
+        <div class="ref-card-head">
+          <div class="ref-avatar">${escapeHtml((item.name || '参').slice(0, 1))}</div>
+          <div class="ref-heading">
+            <div class="ref-name">${escapeHtml(item.name)}<span class="ref-badge">最新</span></div>
+            <div class="ref-meta">${meta}</div>
+          </div>
+          ${source}
+        </div>
+        <div class="ref-body">
+          <div class="ref-grid">${fields}</div>
+          ${notes ? '<div class="ref-notes">' + notes + '</div>' : ''}
+        </div>
+      </article>`;
+  }).join('');
 }
 
-function renderChartHistory(item) {
-  const history = $('chartHistory');
-  history.innerHTML = '';
-  chartList.slice(0, 8).forEach(c => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = c.issue.slice(-3) + ' 期';
-    b.className = c.issue === item.issue ? 'active' : '';
-    b.onclick = () => showChart(c);
-    history.appendChild(b);
-  });
-}
-
-async function loadChart() {
-  if (chartLoading) return;
-  chartLoading = true;
+async function loadReferences() {
+  if (refLoading) return;
+  refLoading = true;
   try {
-    const res = await fetch('charts.json?t=' + Date.now(), { cache: 'no-store' });
+    const res = await fetch('references.json?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    const list = Array.isArray(data.charts) ? data.charts : [];
-    if (!list.length) throw new Error('empty');
-    chartList = list;
-    showChart(list[0]);
+    renderReferences(await res.json());
   } catch (err) {
-    $('chartIssue').textContent = '暂无图';
-    $('chartSheet').classList.remove('layout-full');
-    $('chartWrap').classList.remove('is-full');
-    $('chartWrap').classList.add('is-empty');
-    $('chartWrap').innerHTML = '<div class="empty-text">暂时没有获取到寻宝图，请稍后再试</div>';
-    $('chartSource').textContent = '';
+    $('refList').innerHTML = '<div class="ref-empty">暂时没有获取到今日参考，请稍后再试</div>';
   } finally {
-    chartLoading = false;
+    refLoading = false;
   }
 }
-$('chartRefreshBtn').onclick = loadChart;
+$('refRefreshBtn').onclick = loadReferences;
 
 // === 页签切换 ===
 function switchView(name) {
@@ -1029,7 +1006,7 @@ function switchView(name) {
   });
   if (name === 'stats') renderStats();
   if (name === 'bets') renderDayResult($('drawDate').value || todayStr());
-  if (name === 'chart') loadChart();
+  if (name === 'chart') loadReferences();
   localStorage.setItem('lotto_view', name);
   document.querySelector('.main').scrollTop = 0;
 }

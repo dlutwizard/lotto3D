@@ -6,8 +6,6 @@ on:
     - cron: '20,25,30,35,40 13 * * *'
     # 22:00 and 22:30 China time for the next day's chart
     - cron: '0,30 14 * * *'
-    # 08:30 and 12:30 China time for chart refresh
-    - cron: '30 0,4 * * *'
   workflow_dispatch:
 
 permissions:
@@ -32,16 +30,19 @@ jobs:
       - name: Fetch daily chart
         continue-on-error: true
         run: node scripts/fetch_chart.mjs
+      - name: Fetch daily Yuhaiobin reference
+        continue-on-error: true
+        run: node scripts/fetch_yhb.mjs
       - name: Commit changes
         run: |
-          git add -A -- draws.json charts.json charts
+          git add -A -- draws.json charts.json charts references.json
           if git diff --cached --quiet; then
             echo "No changes"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: update 3D draw results and chart"
+          git commit -m "chore: update 3D draw results and daily references"
           git push
       - name: Report fetch failure
         if: failure()
