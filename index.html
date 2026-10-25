@@ -954,8 +954,14 @@ function escapeHtml(value) {
 }
 
 // === 蜂巢九宫寻宝图（按当期规则复刻） ===
-const HC = { cols: 15, rows: 17, w: 48, h: 50, rs: 37.5, left: 12, top: 150 };
-const HC_COLORS = ['#ff2028', '#0aa6dc', '#86bd3d'];
+const HC = { rows: 17, w: 45, h: 44, rs: 35, left: 30, top: 155 };
+const HC_COLOR_MAP = { r: '#fb0204', b: '#16b0ee', g: '#89c248' };
+const HC_TEXT_MAP = {
+  r: { fill: '#fff8f8', stroke: '#7a1b1b' },
+  b: { fill: '#104050', stroke: '#d9f2f8' },
+  g: { fill: '#2f411f', stroke: '#e7f2d2' }
+};
+let hcBaseCache = null;
 
 function hcRand(seed) {
   let t = seed >>> 0;
@@ -965,13 +971,6 @@ function hcRand(seed) {
     r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
     return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
   };
-}
-function hcShuffle(list, rand) {
-  for (let i = list.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    const tmp = list[i]; list[i] = list[j]; list[j] = tmp;
-  }
-  return list;
 }
 function hcDateValue(date) {
   const p = String(date || '').split('-').map(Number);
@@ -1003,72 +1002,101 @@ function hcLatestDraw(staticDraws) {
   return Object.keys(map).map(k => map[k]).filter(r => /^\d+$/.test(r.issue))
     .sort((a, b) => Number(b.issue) - Number(a.issue))[0] || null;
 }
-function hcWindowPositions() {
-  const rel = [[0, 1], [-1, 0, 1], [-1, 0, 1, 2], [-1, 0, 1], [0, 1]];
+const HC_WINDOW_REL = [[0, 1], [-1, 0, 1], [-1, 0, 1, 2], [-1, 0, 1], [0, 1]];
+
+function hcWindowPositions(base) {
   const out = [];
   for (let r0 = 0; r0 <= HC.rows - 5; r0++) {
-    for (let c0 = 1; c0 <= HC.cols - 3; c0++) {
+    for (let c0 = 0; c0 <= 16; c0++) {
       const cells = [];
-      rel.forEach((row, dr) => row.forEach(dc => {
-        cells.push({ r: r0 + dr, c: c0 + dc });
+      let ok = true;
+      HC_WINDOW_REL.forEach((row, dr) => row.forEach(dc => {
+        if (!ok) return;
+        const r = r0 + dr, c = c0 + dc;
+        if (r < 0 || r >= HC.rows || c < 0 || c >= base.digits[r].length) { ok = false; return; }
+        cells.push({ r, c });
       }));
-      out.push(cells);
+      if (ok) out.push(cells);
     }
   }
   return out;
 }
-function hcBuildChart(prevNumber, issue) {
-  const total = HC.cols * HC.rows;
-  const rand = hcRand(Number(issue) || 1);
-  const digitPool = [];
-  for (let d = 0; d < 10; d++) {
-    for (let i = 0; i < Math.ceil(total / 10); i++) digitPool.push(d);
-  }
-  const digits = hcShuffle(digitPool.slice(0, total), rand);
-  const colors = [];
-  for (let i = 0; i < total; i++) {
-    const roll = rand();
-    colors.push(HC_COLORS[roll < 0.44 ? 0 : roll < 0.75 ? 1 : 2]);
-  }
-  const cellAt = (r, c) => ({ r, c, digit: digits[r * HC.cols + c], color: colors[r * HC.cols + c] });
-  const need = prevNumber.split('').map(Number);
-  const positions = hcWindowPositions();
-  let best = null;
-  let bestScore = -1;
-  let bestTie = -1;
-  positions.forEach(cells => {
-    const pool = need.slice();
-    let score = 0;
-    cells.forEach(pos => {
-      const hit = pool.indexOf(cellAt(pos.r, pos.c).digit);
-      if (hit >= 0) { score++; pool.splice(hit, 1); }
+
+function hcNeighbours(pos, base) {
+  const r = pos.r, c = pos.c;
+  const pairs = r % 2 === 0
+    ? [[r - 1, c], [r - 1, c + 1], [r + 1, c], [r + 1, c + 1]]
+    : [[r - 1, c - 1], [r - 1, c], [r + 1, c - 1], [r + 1, c]];
+  pairs.push([r, c - 1], [r, c + 1]);
+  return pairs.filter(p => p[0] >= 0 && p[0] < HC.rows && p[1] >= 0 && p[1] < base.digits[p[0]].length);
+}
+
+function hcAreConnected(positions, base) {
+  const set = new Set(positions.map(p => p.r + ',' + p.c));
+  if (set.size <= 1) return true;
+  const seen = new Set();
+  const stack = [positions[0]];
+  seen.add(positions[0].r + ',' + positions[0].c);
+  while (stack.length) {
+    const pos = stack.pop();
+    hcNeighbours(pos, base).forEach(([r, c]) => {
+      const key = r + ',' + c;
+      if (set.has(key) && !seen.has(key)) { seen.add(key); stack.push({ r, c }); }
     });
-    const tie = hcRand((Number(issue) || 1) ^ (cells[0].r * 131 + cells[0].c * 977))();
-    if (score > bestScore || (score === bestScore && tie > bestTie)) {
-      best = cells; bestScore = score; bestTie = tie;
+  }
+  return seen.size === set.size;
+}
+
+function hcHasConnectedMatch(cells, digitAt, need, base) {
+  const picked = [];
+  function walk(depth, used) {
+    if (depth === need.length) return hcAreConnected(picked, base);
+    for (let i = 0; i < cells.length; i++) {
+      if (used.has(i) || digitAt(cells[i]) !== need[depth]) continue;
+      used.add(i); picked.push(cells[i]);
+      if (walk(depth + 1, used)) return true;
+      picked.pop(); used.delete(i);
     }
-  });
-  const windowCells = best.map(pos => cellAt(pos.r, pos.c));
+    return false;
+  }
+  return walk(0, new Set());
+}
+
+function hcBuildChart(base, prevNumber, issue) {
+  if (!base || !Array.isArray(base.digits)) return null;
+  const cellAt = (r, c) => {
+    const colorKey = base.colors[r] && base.colors[r][c];
+    return { r, c, digit: base.digits[r][c], colorKey, color: HC_COLOR_MAP[colorKey] || HC_COLOR_MAP.g };
+  };
+  const digitAt = pos => cellAt(pos.r, pos.c).digit;
+  const need = prevNumber.split('').map(Number);
   const required = {};
   need.forEach(d => { required[d] = (required[d] || 0) + 1; });
-  const counts = {};
-  windowCells.forEach(cell => { counts[cell.digit] = (counts[cell.digit] || 0) + 1; });
-  const missing = need.slice();
-  windowCells.forEach(cell => {
-    const idx = missing.indexOf(cell.digit);
-    if (idx >= 0) missing.splice(idx, 1);
+  const positions = hcWindowPositions(base);
+  let best = null;
+  let bestScore = -1;
+  let bestConnected = false;
+  let bestTie = -1;
+  positions.forEach(cells => {
+    const counts = {};
+    cells.forEach(pos => {
+      const d = digitAt(pos);
+      counts[d] = (counts[d] || 0) + 1;
+    });
+    let score = 0;
+    Object.keys(required).forEach(d => { score += Math.min(required[d], counts[d] || 0); });
+    const connected = score === need.length && hcHasConnectedMatch(cells, digitAt, need, base);
+    const tie = hcRand((Number(issue) || 1) ^ (cells[0].r * 131 + cells[0].c * 977))();
+    if (score > bestScore ||
+        (score === bestScore && connected && !bestConnected) ||
+        (score === bestScore && connected === bestConnected && tie > bestTie)) {
+      best = cells; bestScore = score; bestConnected = connected; bestTie = tie;
+    }
   });
-  missing.forEach(d => {
-    let target = windowCells.find(cell => (counts[cell.digit] || 0) > (required[cell.digit] || 0));
-    if (!target) target = windowCells.slice().reverse().find(cell => !required[cell.digit]);
-    if (!target) target = windowCells[windowCells.length - 1];
-    counts[target.digit] = (counts[target.digit] || 0) - 1;
-    target.digit = d;
-    counts[d] = (counts[d] || 0) + 1;
-  });
-  const inWindow = new Set(windowCells.map(cell => cell.r + ',' + cell.c));
+  if (!best) return null;
+  const windowCells = best.map(pos => cellAt(pos.r, pos.c));
   const W = HC.w, H = HC.h, hw = W / 2, qw = W / 4, hh = H / 2;
-  const center = (r, c) => ({ x: HC.left + hw + c * W + (r % 2) * hw, y: HC.top + r * HC.rs });
+  const center = (r, c) => ({ x: HC.left + hw + c * W + (r % 2 === 0 ? hw : 0), y: HC.top + r * HC.rs });
   const poly = (r, c) => {
     const p = center(r, c);
     return [(p.x - hw) + ',' + p.y, (p.x - qw) + ',' + (p.y - hh), (p.x + qw) + ',' + (p.y - hh),
@@ -1076,7 +1104,7 @@ function hcBuildChart(prevNumber, issue) {
   };
   const body = [];
   for (let r = 0; r < HC.rows; r++) {
-    for (let c = 0; c < HC.cols; c++) {
+    for (let c = 0; c < base.digits[r].length; c++) {
       const cell = cellAt(r, c);
       body.push('<polygon points="' + poly(r, c).join(' ') + '" fill="' + cell.color + '" stroke="rgba(20,80,30,.28)" stroke-width="1"/>');
     }
@@ -1084,31 +1112,16 @@ function hcBuildChart(prevNumber, issue) {
   const fill = windowCells.map(cell => '<polygon points="' + poly(cell.r, cell.c).join(' ') + '" fill="rgba(255,255,255,.18)"/>').join('');
   const digitsSvg = [];
   for (let r = 0; r < HC.rows; r++) {
-    for (let c = 0; c < HC.cols; c++) {
+    for (let c = 0; c < base.digits[r].length; c++) {
       const cell = cellAt(r, c);
       const p = center(r, c);
-      digitsSvg.push('<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 1).toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" font-size="26" font-weight="800" fill="#fff" stroke="#0b5a1e" stroke-width="1.6" paint-order="stroke">' + cell.digit + '</text>');
+      const text = HC_TEXT_MAP[cell.colorKey] || HC_TEXT_MAP.g;
+      digitsSvg.push('<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 1).toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" font-size="25" font-weight="800" fill="' + text.fill + '" stroke="' + text.stroke + '" stroke-width="1.1" paint-order="stroke">' + cell.digit + '</text>');
     }
   }
-  const edgeDefs = [];
-  windowCells.forEach(cell => {
-    const r = cell.r, c = cell.c;
-    const up = r % 2 ? { left: [r - 1, c], right: [r - 1, c + 1] } : { left: [r - 1, c - 1], right: [r - 1, c] };
-    const down = r % 2 ? { left: [r + 1, c], right: [r + 1, c + 1] } : { left: [r + 1, c - 1], right: [r + 1, c] };
-    const neighbours = [
-      null, up.left, up.right, null, down.right, down.left
-    ];
-    const pts = poly(r, c);
-    const pairs = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]];
-    pairs.forEach((pair, i) => {
-      const nb = neighbours[i];
-      const shared = nb && nb[0] >= 0 && nb[1] >= 0 && inWindow.has(nb[0] + ',' + nb[1]);
-      if (shared) return;
-      const a = pts[pair[0]].split(','), b = pts[pair[1]].split(',');
-      edgeDefs.push('<path d="M' + a[0] + ' ' + a[1] + 'L' + b[0] + ' ' + b[1] + '"/>');
-    });
-  });
-  const edgePath = edgeDefs.join('');
+  const windowPoly = windowCells.map(cell => '<polygon points="' + poly(cell.r, cell.c).join(' ') + '"/>').join('');
+  const windowCover = windowCells.map(cell =>
+    '<polygon points="' + poly(cell.r, cell.c).join(' ') + '" fill="' + cell.color + '"/>').join('');
   const pool = windowCells.map(cell => cell.digit).join(' ');
   const noteY = HC.top + (HC.rows - 1) * HC.rs + 70;
   const svg = '<svg viewBox="0 0 780 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
@@ -1123,11 +1136,10 @@ function hcBuildChart(prevNumber, issue) {
     '<text x="390" y="52" text-anchor="middle" font-size="48" font-weight="900" letter-spacing="2" fill="#fff" stroke="#237a4c" stroke-width="2" paint-order="stroke">蜂巢九宫寻宝图</text>' +
     '<text x="390" y="105" text-anchor="middle" font-size="31" font-weight="800"><tspan fill="#ffd54a" stroke="#a46a00" stroke-width="1" paint-order="stroke">福彩3D</tspan><tspan fill="#fff" stroke="#237a4c" stroke-width="1" paint-order="stroke"> 第' + issue + '期</tspan></text>' +
     '<g>' + body + '</g>' +
+    '<g fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round">' + windowPoly + '</g>' +
+    '<g>' + windowCover + '</g>' +
     fill +
     '<g>' + digitsSvg.join('') + '</g>' +
-    '<g fill="none" stroke="rgba(31,90,45,.22)" stroke-width="11" stroke-linecap="round">' + edgePath + '</g>' +
-    '<g fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".6">' + edgePath + '</g>' +
-    '<g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round">' + edgePath + '</g>' +
     '<text x="26" y="' + noteY + '" font-size="19" font-weight="700" fill="#fff" opacity=".92">&lt;上期</text>' +
     '<text x="405" y="' + (noteY - 3) + '" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">说明：选中蜂窝，移动位置，找到上期开奖号【' + prevNumber + '】</text>' +
     '<text x="405" y="' + (noteY + 30) + '" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">用上期开奖号周边的数字作为下期参考号码。</text>' +
@@ -1135,24 +1147,25 @@ function hcBuildChart(prevNumber, issue) {
     '</svg>';
   return { svg, pool, count: windowCells.length };
 }
-function buildHoneycombCard(staticDraws) {
+function buildHoneycombCard(staticDraws, base) {
   const latest = hcLatestDraw(staticDraws);
-  if (!latest) return '';
+  if (!latest || !base) return '';
   const diff = Math.max(1, Math.round(hcDateValue(todayStr()) - hcDateValue(latest.date)) || 1);
   const targetIssue = Number(latest.issue) + diff;
-  const chart = hcBuildChart(latest.number, targetIssue);
+  const chart = hcBuildChart(base, latest.number, targetIssue);
+  if (!chart) return '';
   const chips = chart.pool.split(' ').map(d => '<span class="hc-digit">' + d + '</span>').join('');
   return '<article class="ref-card hc-card">' +
     '<div class="hc-chart">' + chart.svg + '</div>' +
     '<div class="hc-info">' +
       '<div class="hc-pool"><span class="hc-pool-label">窗口参考号</span>' + chips +
         '<button class="hc-copy" type="button" data-pool="' + chart.pool + '">复制</button></div>' +
-      '<p class="hc-note">蜂窝图为规则复刻示意，仅供娱乐参考。</p>' +
+      '<p class="hc-note">底图固定为第' + escapeHtml(base.issue || '2026249') + '期，仅移动14格白框；仅供娱乐参考。</p>' +
     '</div>' +
   '</article>';
 }
 
-function renderReferences(data, staticDraws) {
+function renderReferences(data, staticDraws, base) {
   const list = $('refList');
   const items = Array.isArray(data.items) ? data.items : [];
   const cards = items.map(item => {
@@ -1186,7 +1199,7 @@ function renderReferences(data, staticDraws) {
         </div>
       </article>`;
   }).join('');
-  const honeycomb = buildHoneycombCard(staticDraws);
+  const honeycomb = buildHoneycombCard(staticDraws, base);
   if (!cards && !honeycomb) {
     list.innerHTML = '<div class="ref-empty">暂时没有获取到今日参考，请稍后再试</div>';
     return;
@@ -1194,19 +1207,42 @@ function renderReferences(data, staticDraws) {
   list.innerHTML = cards + honeycomb;
 }
 
+function hcValidBase(base) {
+  return !!(base && Array.isArray(base.digits) && base.digits.length === HC.rows &&
+    Array.isArray(base.colors) && base.digits.every((row, i) =>
+      typeof row === 'string' && /^\d+$/.test(row) &&
+      typeof base.colors[i] === 'string' && base.colors[i].length === row.length && /^[rbg]+$/.test(base.colors[i])));
+}
+
 async function loadReferences() {
   if (refLoading) return;
   refLoading = true;
   try {
-    const res = await fetch('references.json?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
+    let data = { items: [] };
+    try {
+      const res = await fetch('references.json?t=' + Date.now(), { cache: 'no-store' });
+      if (res.ok) data = await res.json();
+    } catch (e) {}
     let staticDraws = {};
     try {
       const drawRes = await fetch('draws.json?t=' + Date.now(), { cache: 'no-store' });
       if (drawRes.ok) staticDraws = (await drawRes.json()).draws || {};
     } catch (e) {}
-    renderReferences(data, staticDraws);
+    if (!hcBaseCache) {
+      try {
+        const hcRes = await fetch('hc-base.json?t=' + Date.now(), { cache: 'no-store' });
+        if (hcRes.ok) {
+          const base = await hcRes.json();
+          if (hcValidBase(base)) hcBaseCache = base;
+        }
+      } catch (e) {}
+    }
+    const hasItems = Array.isArray(data.items) && data.items.length > 0;
+    if (!hasItems && !(hcBaseCache && hcLatestDraw(staticDraws))) {
+      $('refList').innerHTML = '<div class="ref-empty">暂时没有获取到今日参考，请稍后再试</div>';
+      return;
+    }
+    renderReferences(data, staticDraws, hcBaseCache);
   } catch (err) {
     $('refList').innerHTML = '<div class="ref-empty">暂时没有获取到今日参考，请稍后再试</div>';
   } finally {
