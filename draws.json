@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-25T13:25:05.530Z",
+  "updatedAt": "2026-10-25T15:00:49.930Z",
   "source": "https://lotto.sina.cn/trend/lotto_zst_proxy.d.json?lottoType=3d&actionType=chzs&type=50&sourceName=bd&callback=zst",
   "fallbackSource": "https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=3d&issueCount=30",
   "draws": {
