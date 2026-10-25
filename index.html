@@ -954,13 +954,20 @@ function escapeHtml(value) {
 }
 
 // === 蜂巢九宫寻宝图（按当期规则复刻） ===
-const HC = { rows: 17, w: 45, h: 44, rs: 35, left: 30, top: 155 };
-const HC_COLOR_MAP = { r: '#fb0204', b: '#16b0ee', g: '#89c248' };
-const HC_TEXT_MAP = {
-  r: { fill: '#fff8f8', stroke: '#7a1b1b' },
-  b: { fill: '#104050', stroke: '#d9f2f8' },
-  g: { fill: '#2f411f', stroke: '#e7f2d2' }
+const HC = {
+  rows: 17,
+  image: 'hc-base.png',
+  imageW: 1279,
+  imageH: 1544,
+  cellW: 72.158,
+  cellH: 73.9613,
+  rowStep: 55.471,
+  x0: 134.34,
+  y0: 403.66,
+  rowShift: 36.079,
+  frameWidth: 9
 };
+const HC_COLOR_MAP = { r: '#fb0204', b: '#16b0ee', g: '#89c248' };
 let hcBaseCache = null;
 
 function hcRand(seed) {
@@ -1002,15 +1009,26 @@ function hcLatestDraw(staticDraws) {
   return Object.keys(map).map(k => map[k]).filter(r => /^\d+$/.test(r.issue))
     .sort((a, b) => Number(b.issue) - Number(a.issue))[0] || null;
 }
-const HC_WINDOW_REL = [[0, 1], [-1, 0, 1], [-1, 0, 1, 2], [-1, 0, 1], [0, 1]];
+const HC_WINDOW_REL_EVEN = [[0, 1], [0, 1, 2], [-1, 0, 1, 2], [0, 1, 2], [0, 1]];
+const HC_WINDOW_REL_ODD = [[0, 1], [-1, 0, 1], [-1, 0, 1, 2], [-1, 0, 1], [0, 1]];
+const HC_KNOWN_WINDOWS = {
+  '2026284': [
+    [2, 11], [2, 12],
+    [3, 11], [3, 12], [3, 13],
+    [4, 10], [4, 11], [4, 12], [4, 13],
+    [5, 11], [5, 12], [5, 13],
+    [6, 11], [6, 12]
+  ]
+};
 
 function hcWindowPositions(base) {
   const out = [];
   for (let r0 = 0; r0 <= HC.rows - 5; r0++) {
+    const rel = r0 % 2 === 0 ? HC_WINDOW_REL_EVEN : HC_WINDOW_REL_ODD;
     for (let c0 = 0; c0 <= 16; c0++) {
       const cells = [];
       let ok = true;
-      HC_WINDOW_REL.forEach((row, dr) => row.forEach(dc => {
+      rel.forEach((row, dr) => row.forEach(dc => {
         if (!ok) return;
         const r = r0 + dr, c = c0 + dc;
         if (r < 0 || r >= HC.rows || c < 0 || c >= base.digits[r].length) { ok = false; return; }
@@ -1020,6 +1038,51 @@ function hcWindowPositions(base) {
     }
   }
   return out;
+}
+
+function hcCellPoints(r, c) {
+  const hw = HC.cellW / 2, qw = HC.cellW / 4, hh = HC.cellH / 2;
+  const x = HC.x0 + c * HC.cellW - (r % 2 === 0 ? 0 : HC.rowShift);
+  const y = HC.y0 + r * HC.rowStep;
+  return [
+    { x, y: y - hh }, { x: x + hw, y: y - hh / 2 }, { x: x + hw, y: y + hh / 2 },
+    { x, y: y + hh }, { x: x - hw, y: y + hh / 2 }, { x: x - hw, y: y - hh / 2 }
+  ];
+}
+
+function hcOutlinePath(cells) {
+  const edges = new Map();
+  cells.forEach(cell => {
+    const pts = hcCellPoints(cell.r, cell.c);
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      const ak = a.x.toFixed(2) + ',' + a.y.toFixed(2);
+      const bk = b.x.toFixed(2) + ',' + b.y.toFixed(2);
+      const key = ak < bk ? ak + '|' + bk : bk + '|' + ak;
+      if (edges.has(key)) edges.delete(key);
+      else edges.set(key, { a: ak, b: bk });
+    }
+  });
+  if (!edges.size) return '';
+  const adj = new Map();
+  const link = (u, v) => {
+    if (!adj.has(u)) adj.set(u, []);
+    adj.get(u).push(v);
+  };
+  edges.forEach(e => { link(e.a, e.b); link(e.b, e.a); });
+  const start = edges.values().next().value.a;
+  let cur = start, prev = null;
+  const parts = ['M ' + start.replace(',', ' ')];
+  for (let guard = 0; guard <= edges.size; guard++) {
+    const next = (adj.get(cur) || []).find(v => v !== prev);
+    if (!next) break;
+    parts.push('L ' + next.replace(',', ' '));
+    prev = cur;
+    cur = next;
+    if (cur === start) break;
+  }
+  parts.push('Z');
+  return parts.join(' ');
 }
 
 function hcNeighbours(pos, base) {
@@ -1072,78 +1135,41 @@ function hcBuildChart(base, prevNumber, issue) {
   const need = prevNumber.split('').map(Number);
   const required = {};
   need.forEach(d => { required[d] = (required[d] || 0) + 1; });
-  const positions = hcWindowPositions(base);
-  let best = null;
-  let bestScore = -1;
-  let bestConnected = false;
-  let bestTie = -1;
-  positions.forEach(cells => {
-    const counts = {};
-    cells.forEach(pos => {
-      const d = digitAt(pos);
-      counts[d] = (counts[d] || 0) + 1;
+  let windowCells = null;
+  const known = HC_KNOWN_WINDOWS[String(issue)];
+  if (known && known.every(([r, c]) => base.digits[r] && typeof base.digits[r][c] === 'string')) {
+    windowCells = known.map(([r, c]) => cellAt(r, c));
+  } else {
+    const positions = hcWindowPositions(base);
+    let best = null;
+    let bestScore = -1;
+    let bestConnected = false;
+    let bestTie = -1;
+    positions.forEach(cells => {
+      const counts = {};
+      cells.forEach(pos => {
+        const d = digitAt(pos);
+        counts[d] = (counts[d] || 0) + 1;
+      });
+      let score = 0;
+      Object.keys(required).forEach(d => { score += Math.min(required[d], counts[d] || 0); });
+      const connected = score === need.length && hcHasConnectedMatch(cells, digitAt, need, base);
+      const tie = hcRand((Number(issue) || 1) ^ (cells[0].r * 131 + cells[0].c * 977))();
+      if (score > bestScore ||
+          (score === bestScore && connected && !bestConnected) ||
+          (score === bestScore && connected === bestConnected && tie > bestTie)) {
+        best = cells; bestScore = score; bestConnected = connected; bestTie = tie;
+      }
     });
-    let score = 0;
-    Object.keys(required).forEach(d => { score += Math.min(required[d], counts[d] || 0); });
-    const connected = score === need.length && hcHasConnectedMatch(cells, digitAt, need, base);
-    const tie = hcRand((Number(issue) || 1) ^ (cells[0].r * 131 + cells[0].c * 977))();
-    if (score > bestScore ||
-        (score === bestScore && connected && !bestConnected) ||
-        (score === bestScore && connected === bestConnected && tie > bestTie)) {
-      best = cells; bestScore = score; bestConnected = connected; bestTie = tie;
-    }
-  });
-  if (!best) return null;
-  const windowCells = best.map(pos => cellAt(pos.r, pos.c));
-  const W = HC.w, H = HC.h, hw = W / 2, qw = W / 4, hh = H / 2;
-  const center = (r, c) => ({ x: HC.left + hw + c * W + (r % 2 === 0 ? hw : 0), y: HC.top + r * HC.rs });
-  const poly = (r, c) => {
-    const p = center(r, c);
-    return [(p.x - hw) + ',' + p.y, (p.x - qw) + ',' + (p.y - hh), (p.x + qw) + ',' + (p.y - hh),
-      (p.x + hw) + ',' + p.y, (p.x + qw) + ',' + (p.y + hh), (p.x - qw) + ',' + (p.y + hh)];
-  };
-  const body = [];
-  for (let r = 0; r < HC.rows; r++) {
-    for (let c = 0; c < base.digits[r].length; c++) {
-      const cell = cellAt(r, c);
-      body.push('<polygon points="' + poly(r, c).join(' ') + '" fill="' + cell.color + '" stroke="rgba(20,80,30,.28)" stroke-width="1"/>');
-    }
+    if (!best) return null;
+    windowCells = best.map(pos => cellAt(pos.r, pos.c));
   }
-  const fill = windowCells.map(cell => '<polygon points="' + poly(cell.r, cell.c).join(' ') + '" fill="rgba(255,255,255,.18)"/>').join('');
-  const digitsSvg = [];
-  for (let r = 0; r < HC.rows; r++) {
-    for (let c = 0; c < base.digits[r].length; c++) {
-      const cell = cellAt(r, c);
-      const p = center(r, c);
-      const text = HC_TEXT_MAP[cell.colorKey] || HC_TEXT_MAP.g;
-      digitsSvg.push('<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 1).toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" font-size="25" font-weight="800" fill="' + text.fill + '" stroke="' + text.stroke + '" stroke-width="1.1" paint-order="stroke">' + cell.digit + '</text>');
-    }
-  }
-  const windowPoly = windowCells.map(cell => '<polygon points="' + poly(cell.r, cell.c).join(' ') + '"/>').join('');
-  const windowCover = windowCells.map(cell =>
-    '<polygon points="' + poly(cell.r, cell.c).join(' ') + '" fill="' + cell.color + '"/>').join('');
+  const outline = hcOutlinePath(windowCells);
   const pool = windowCells.map(cell => cell.digit).join(' ');
-  const noteY = HC.top + (HC.rows - 1) * HC.rs + 70;
-  const svg = '<svg viewBox="0 0 780 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
-    '<defs>' +
-    '<linearGradient id="hcBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6fd09e"/><stop offset=".5" stop-color="#55c28b"/><stop offset="1" stop-color="#3fb37c"/></linearGradient>' +
-    '<radialGradient id="hcGlow" cx=".5" cy=".45" r=".62"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
-    '<pattern id="hcLines" width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(24)"><path d="M0 0V26" stroke="#fff" stroke-width="1" opacity=".12"/></pattern>' +
-    '</defs>' +
-    '<rect width="780" height="900" fill="url(#hcBg)"/>' +
-    '<rect width="780" height="900" fill="url(#hcLines)"/>' +
-    '<rect width="780" height="900" fill="url(#hcGlow)"/>' +
-    '<text x="390" y="52" text-anchor="middle" font-size="48" font-weight="900" letter-spacing="2" fill="#fff" stroke="#237a4c" stroke-width="2" paint-order="stroke">蜂巢九宫寻宝图</text>' +
-    '<text x="390" y="105" text-anchor="middle" font-size="31" font-weight="800"><tspan fill="#ffd54a" stroke="#a46a00" stroke-width="1" paint-order="stroke">福彩3D</tspan><tspan fill="#fff" stroke="#237a4c" stroke-width="1" paint-order="stroke"> 第' + issue + '期</tspan></text>' +
-    '<g>' + body + '</g>' +
-    '<g fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round">' + windowPoly + '</g>' +
-    '<g>' + windowCover + '</g>' +
-    fill +
-    '<g>' + digitsSvg.join('') + '</g>' +
-    '<text x="26" y="' + noteY + '" font-size="19" font-weight="700" fill="#fff" opacity=".92">&lt;上期</text>' +
-    '<text x="405" y="' + (noteY - 3) + '" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">说明：选中蜂窝，移动位置，找到上期开奖号【' + prevNumber + '】</text>' +
-    '<text x="405" y="' + (noteY + 30) + '" text-anchor="middle" font-size="21" font-weight="700" fill="#fff">用上期开奖号周边的数字作为下期参考号码。</text>' +
-    '<text x="764" y="892" text-anchor="end" font-size="13" fill="#fff" opacity=".6">仅供娱乐参考</text>' +
+  const svg = '<svg viewBox="0 0 ' + HC.imageW + ' ' + HC.imageH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
+    '<image href="' + HC.image + '" x="0" y="0" width="' + HC.imageW + '" height="' + HC.imageH + '" preserveAspectRatio="none"/>' +
+    '<path d="' + outline + '" fill="none" stroke="rgba(0,60,20,.18)" stroke-width="' + (HC.frameWidth + 4) + '" stroke-linejoin="round" stroke-linecap="round"/>' +
+    '<path d="' + outline + '" fill="none" stroke="#fff" stroke-width="' + HC.frameWidth + '" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>';
   return { svg, pool, count: windowCells.length };
 }
@@ -1160,7 +1186,7 @@ function buildHoneycombCard(staticDraws, base) {
     '<div class="hc-info">' +
       '<div class="hc-pool"><span class="hc-pool-label">窗口参考号</span>' + chips +
         '<button class="hc-copy" type="button" data-pool="' + chart.pool + '">复制</button></div>' +
-      '<p class="hc-note">底图固定为第' + escapeHtml(base.issue || '2026249') + '期，仅移动14格白框；仅供娱乐参考。</p>' +
+      '<p class="hc-note">底图固定为第' + escapeHtml(base.issue || '2026284') + '期，仅移动14格白框；仅供娱乐参考。</p>' +
     '</div>' +
   '</article>';
 }

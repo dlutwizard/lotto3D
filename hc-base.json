@@ -1,5 +1,5 @@
 {
- "issue": "2026249",
+ "issue": "2026284",
  "rows": 17,
  "cols": [
   15,
@@ -63,5 +63,5 @@
   "rgrrgrbbrbbrbggr",
   "brgbbbbrrggrrgb"
  ],
- "source": "reference screenshot 2026249, glyph clustering verified"
+ "source": "reference chart 2026284, verified against official chart and AI base image"
 }
