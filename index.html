@@ -965,7 +965,8 @@ const HC = {
   x0: 134.34,
   y0: 403.66,
   rowShift: 36.079,
-  frameWidth: 9
+  frameWidth: 9,
+  font: "'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif"
 };
 let hcBaseCache = null;
 
@@ -1124,8 +1125,13 @@ function hcBuildChart(base, prevNumber, issue) {
   if (!windowCells) return null;
   const outline = hcOutlinePath(windowCells);
   const pool = windowCells.map(cell => base.digits[cell.r][cell.c]).join(' ');
+  const issueLabel = '第' + issue + '期';
+  const titleAttrs = 'x="870" y="320" text-anchor="middle" font-family="' + HC.font + '" font-size="74" font-weight="900" textLength="340" lengthAdjust="spacingAndGlyphs"';
   const svg = '<svg viewBox="0 0 ' + HC.imageW + ' ' + HC.imageH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
     '<image href="' + HC.image + '" x="0" y="0" width="' + HC.imageW + '" height="' + HC.imageH + '" preserveAspectRatio="none"/>' +
+    '<text ' + titleAttrs + ' fill="#fff" stroke="#e9a72f" stroke-width="9" paint-order="stroke">' + issueLabel + '</text>' +
+    '<text ' + titleAttrs + ' fill="#fff" stroke="#5b0b08" stroke-width="5" paint-order="stroke">' + issueLabel + '</text>' +
+    '<text x="913" y="1490" text-anchor="middle" font-family="' + HC.font + '" font-size="44" font-weight="700" fill="#fff" textLength="104" lengthAdjust="spacing">' + prevNumber + '</text>' +
     '<path d="' + outline + '" fill="none" stroke="rgba(0,60,20,.18)" stroke-width="' + (HC.frameWidth + 4) + '" stroke-linejoin="round" stroke-linecap="round"/>' +
     '<path d="' + outline + '" fill="none" stroke="#fff" stroke-width="' + HC.frameWidth + '" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>';
@@ -1144,7 +1150,7 @@ function buildHoneycombCard(staticDraws, base) {
     '<div class="hc-info">' +
       '<div class="hc-pool"><span class="hc-pool-label">窗口参考号</span>' + chips +
         '<button class="hc-copy" type="button" data-pool="' + chart.pool + '">复制</button></div>' +
-      '<p class="hc-note">底图固定为第' + escapeHtml(base.issue || '2026284') + '期，仅移动14格白框；仅供娱乐参考。</p>' +
+      '<p class="hc-note">底图数字和颜色固定；期号与上期开奖号自动更新，仅移动14格白框；仅供娱乐参考。</p>' +
     '</div>' +
   '</article>';
 }
