@@ -967,18 +967,8 @@ const HC = {
   rowShift: 36.079,
   frameWidth: 9
 };
-const HC_COLOR_MAP = { r: '#fb0204', b: '#16b0ee', g: '#89c248' };
 let hcBaseCache = null;
 
-function hcRand(seed) {
-  let t = seed >>> 0;
-  return function() {
-    t += 0x6D2B79F5;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
-}
 function hcDateValue(date) {
   const p = String(date || '').split('-').map(Number);
   return p.length === 3 ? Date.UTC(p[0], p[1] - 1, p[2]) / 86400000 : NaN;
@@ -1011,22 +1001,6 @@ function hcLatestDraw(staticDraws) {
 }
 const HC_WINDOW_REL_EVEN = [[0, 1], [0, 1, 2], [-1, 0, 1, 2], [0, 1, 2], [0, 1]];
 const HC_WINDOW_REL_ODD = [[0, 1], [-1, 0, 1], [-1, 0, 1, 2], [-1, 0, 1], [0, 1]];
-const HC_KNOWN_WINDOWS = {
-  '2026284': [
-    [2, 11], [2, 12],
-    [3, 11], [3, 12], [3, 13],
-    [4, 10], [4, 11], [4, 12], [4, 13],
-    [5, 11], [5, 12], [5, 13],
-    [6, 11], [6, 12]
-  ],
-  '2026285': [
-    [3, 12], [3, 13],
-    [4, 11], [4, 12], [4, 13],
-    [5, 11], [5, 12], [5, 13], [5, 14],
-    [6, 11], [6, 12], [6, 13],
-    [7, 12], [7, 13]
-  ]
-};
 
 function hcWindowPositions(base) {
   const out = [];
@@ -1092,87 +1066,64 @@ function hcOutlinePath(cells) {
   return parts.join(' ');
 }
 
-function hcNeighbours(pos, base) {
-  const r = pos.r, c = pos.c;
-  const pairs = r % 2 === 0
-    ? [[r - 1, c], [r - 1, c + 1], [r + 1, c], [r + 1, c + 1]]
-    : [[r - 1, c - 1], [r - 1, c], [r + 1, c - 1], [r + 1, c]];
-  pairs.push([r, c - 1], [r, c + 1]);
-  return pairs.filter(p => p[0] >= 0 && p[0] < HC.rows && p[1] >= 0 && p[1] < base.digits[p[0]].length);
-}
+function hcPickWindow(base, prevNumber) {
+  const need = prevNumber.split('');
+  const positions = hcWindowPositions(base);
+  const center = (r, c) => ({
+    x: HC.x0 + c * HC.cellW - (r % 2 === 0 ? 0 : HC.rowShift),
+    y: HC.y0 + r * HC.rowStep
+  });
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  let best = null;
+  positions.forEach(cells => {
+    const centers = cells.map(p => center(p.r, p.c));
+    const winX = centers.reduce((s, p) => s + p.x, 0) / centers.length;
+    const winY = centers.reduce((s, p) => s + p.y, 0) / centers.length;
+    let bestMatch = null;
+    const picked = [];
 
-function hcAreConnected(positions, base) {
-  const set = new Set(positions.map(p => p.r + ',' + p.c));
-  if (set.size <= 1) return true;
-  const seen = new Set();
-  const stack = [positions[0]];
-  seen.add(positions[0].r + ',' + positions[0].c);
-  while (stack.length) {
-    const pos = stack.pop();
-    hcNeighbours(pos, base).forEach(([r, c]) => {
-      const key = r + ',' + c;
-      if (set.has(key) && !seen.has(key)) { seen.add(key); stack.push({ r, c }); }
-    });
-  }
-  return seen.size === set.size;
-}
-
-function hcHasConnectedMatch(cells, digitAt, need, base) {
-  const picked = [];
-  function walk(depth, used) {
-    if (depth === need.length) return hcAreConnected(picked, base);
-    for (let i = 0; i < cells.length; i++) {
-      if (used.has(i) || digitAt(cells[i]) !== need[depth]) continue;
-      used.add(i); picked.push(cells[i]);
-      if (walk(depth + 1, used)) return true;
-      picked.pop(); used.delete(i);
+    function walk(depth) {
+      if (depth === need.length) {
+        let compact = 0;
+        for (let i = 0; i < picked.length; i++) {
+          for (let j = i + 1; j < picked.length; j++) compact += dist(picked[i], picked[j]);
+        }
+        const cx = picked.reduce((s, p) => s + p.x, 0) / picked.length;
+        const cy = picked.reduce((s, p) => s + p.y, 0) / picked.length;
+        const centerError = Math.hypot(cx - winX, cy - winY);
+        if (!bestMatch ||
+            compact < bestMatch.compact - 1e-6 ||
+            (Math.abs(compact - bestMatch.compact) <= 1e-6 && centerError < bestMatch.centerError - 1e-6)) {
+          bestMatch = { compact, centerError };
+        }
+        return;
+      }
+      for (let i = 0; i < cells.length; i++) {
+        if (picked.some(p => p.index === i)) continue;
+        const cell = cells[i];
+        if (base.digits[cell.r][cell.c] !== need[depth]) continue;
+        picked.push({ index: i, x: centers[i].x, y: centers[i].y });
+        walk(depth + 1);
+        picked.pop();
+      }
     }
-    return false;
-  }
-  return walk(0, new Set());
+    walk(0);
+
+    if (bestMatch && (!best ||
+        bestMatch.compact < best.compact - 1e-6 ||
+        (Math.abs(bestMatch.compact - best.compact) <= 1e-6 && bestMatch.centerError < best.centerError - 1e-6))) {
+      best = { compact: bestMatch.compact, centerError: bestMatch.centerError, cells };
+    }
+  });
+  return best ? best.cells : null;
 }
 
 function hcBuildChart(base, prevNumber, issue) {
   if (!base || !Array.isArray(base.digits)) return null;
-  const cellAt = (r, c) => {
-    const colorKey = base.colors[r] && base.colors[r][c];
-    return { r, c, digit: base.digits[r][c], colorKey, color: HC_COLOR_MAP[colorKey] || HC_COLOR_MAP.g };
-  };
-  const digitAt = pos => cellAt(pos.r, pos.c).digit;
-  const need = prevNumber.split('').map(Number);
-  const required = {};
-  need.forEach(d => { required[d] = (required[d] || 0) + 1; });
-  let windowCells = null;
-  const known = HC_KNOWN_WINDOWS[String(issue)];
-  if (known && known.every(([r, c]) => base.digits[r] && typeof base.digits[r][c] === 'string')) {
-    windowCells = known.map(([r, c]) => cellAt(r, c));
-  } else {
-    const positions = hcWindowPositions(base);
-    let best = null;
-    let bestScore = -1;
-    let bestConnected = false;
-    let bestTie = -1;
-    positions.forEach(cells => {
-      const counts = {};
-      cells.forEach(pos => {
-        const d = digitAt(pos);
-        counts[d] = (counts[d] || 0) + 1;
-      });
-      let score = 0;
-      Object.keys(required).forEach(d => { score += Math.min(required[d], counts[d] || 0); });
-      const connected = score === need.length && hcHasConnectedMatch(cells, digitAt, need, base);
-      const tie = hcRand((Number(issue) || 1) ^ (cells[0].r * 131 + cells[0].c * 977))();
-      if (score > bestScore ||
-          (score === bestScore && connected && !bestConnected) ||
-          (score === bestScore && connected === bestConnected && tie > bestTie)) {
-        best = cells; bestScore = score; bestConnected = connected; bestTie = tie;
-      }
-    });
-    if (!best) return null;
-    windowCells = best.map(pos => cellAt(pos.r, pos.c));
-  }
+  const windowCells = hcPickWindow(base, prevNumber);
+  if (!windowCells) return null;
   const outline = hcOutlinePath(windowCells);
-  const pool = windowCells.map(cell => cell.digit).join(' ');
+  const pool = windowCells.map(cell => base.digits[cell.r][cell.c]).join(' ');
   const svg = '<svg viewBox="0 0 ' + HC.imageW + ' ' + HC.imageH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
     '<image href="' + HC.image + '" x="0" y="0" width="' + HC.imageW + '" height="' + HC.imageH + '" preserveAspectRatio="none"/>' +
     '<path d="' + outline + '" fill="none" stroke="rgba(0,60,20,.18)" stroke-width="' + (HC.frameWidth + 4) + '" stroke-linejoin="round" stroke-linecap="round"/>' +
