@@ -1,6 +1,17 @@
 {
-  "updatedAt": "2026-10-24T04:57:07.201Z",
+  "updatedAt": "2026-10-25T16:10:03.552Z",
   "charts": [
+    {
+      "issue": "2026284",
+      "title": "蜂巢九宫寻宝图 第2026284期",
+      "image": "charts/2026284.webp",
+      "source": "https://www.800820.net/p/11526704.html",
+      "width": 336,
+      "height": 456,
+      "cropTop": 109,
+      "cropBottom": 59,
+      "fetchedAt": "2026-10-25T16:10:03.552Z"
+    },
     {
       "issue": "2026283",
       "title": "蜂巢九宫寻宝图 第2026283期",
