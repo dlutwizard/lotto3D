@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#1e1b4b" />
 <title>3D 选号助手</title>
 <style>
+@font-face { font-family: 'HCYuan'; src: url('fonts/youyuan-sub.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
   --bg: #f8fafc;
@@ -966,7 +967,7 @@ const HC = {
   y0: 403.66,
   rowShift: 36.079,
   frameWidth: 9,
-  font: "'Microsoft YaHei','PingFang SC','Noto Sans CJK SC',sans-serif"
+  font: "'HCYuan','YouYuan','Microsoft YaHei',sans-serif"
 };
 let hcBaseCache = null;
 
@@ -1119,19 +1120,68 @@ function hcPickWindow(base, prevNumber) {
   return best ? best.cells : null;
 }
 
+const HC_TITLE = {
+  cnSize: 60,
+  cnScale: 1.16,
+  digitSize: 75,
+  digitScale: 1.30,
+  cnBaseline: 314,
+  digitBaseline: 316,
+  left: { ch: '第', x: 562 },
+  right: { ch: '期', x: 1002.5 },
+  digitX: [628, 680, 731.5, 783.5, 834.5, 885, 937],
+  labelX: [619.5, 656.5, 692, 731, 765.5, 799],
+  labelBaseline: 1488,
+  labelSize: 27,
+  bracketX: [839, 985],
+  bracketBaseline: 1489,
+  bracketSize: 30,
+  numberX: [876, 911.5, 948],
+  numberBaseline: 1491,
+  numberSize: 42,
+  numberScale: 1.66
+};
+
+function hcTextChar(ch, x, y, size, scale, weight, fill) {
+  const color = fill || '#fff';
+  const attrs = 'font-family="' + HC.font + '" font-size="' + size + '" fill="' + color + '"' +
+    (weight ? ' stroke="' + color + '" stroke-width="' + weight + '" paint-order="stroke"' : '');
+  if (scale && scale !== 1) {
+    return '<text x="0" y="' + y + '" text-anchor="middle" transform="translate(' + x + ' 0) scale(' + scale + ' 1)" ' + attrs + '>' + ch + '</text>';
+  }
+  return '<text x="' + x + '" y="' + y + '" text-anchor="middle" ' + attrs + '>' + ch + '</text>';
+}
+
+function hcTextParts(issue, prevNumber, fill) {
+  const t = HC_TITLE;
+  const parts = [hcTextChar(t.left.ch, t.left.x, t.cnBaseline, t.cnSize, t.cnScale, 4.2, fill)];
+  String(issue).split('').forEach((d, i) => {
+    const x = t.digitX[i] || (t.digitX[t.digitX.length - 1] + 52 * (i - 6));
+    parts.push(hcTextChar(d, x, t.digitBaseline, t.digitSize, t.digitScale, 4.4, fill));
+  });
+  parts.push(hcTextChar(t.right.ch, t.right.x, t.cnBaseline, t.cnSize, t.cnScale, 4.2, fill));
+  '上期开奖号：'.split('').forEach((ch, i) => {
+    parts.push(hcTextChar(ch, t.labelX[i], t.labelBaseline, t.labelSize, 1, 1.6, fill));
+  });
+  String(prevNumber).split('').forEach((d, i) => {
+    const x = t.numberX[i] || (t.numberX[t.numberX.length - 1] + 36 * (i - 2));
+    parts.push(hcTextChar(d, x, t.numberBaseline, t.numberSize, t.numberScale, 4.0, fill));
+  });
+  parts.push(hcTextChar('【', t.bracketX[0], t.bracketBaseline, t.bracketSize, 1, 2.2, fill));
+  parts.push(hcTextChar('】', t.bracketX[1], t.bracketBaseline, t.bracketSize, 1, 2.2, fill));
+  return parts.join('');
+}
+
 function hcBuildChart(base, prevNumber, issue) {
   if (!base || !Array.isArray(base.digits)) return null;
   const windowCells = hcPickWindow(base, prevNumber);
   if (!windowCells) return null;
   const outline = hcOutlinePath(windowCells);
   const pool = windowCells.map(cell => base.digits[cell.r][cell.c]).join(' ');
-  const issueLabel = '第' + issue + '期';
-  const titleAttrs = 'x="870" y="320" text-anchor="middle" font-family="' + HC.font + '" font-size="74" font-weight="900" textLength="340" lengthAdjust="spacingAndGlyphs"';
   const svg = '<svg viewBox="0 0 ' + HC.imageW + ' ' + HC.imageH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
     '<image href="' + HC.image + '" x="0" y="0" width="' + HC.imageW + '" height="' + HC.imageH + '" preserveAspectRatio="none"/>' +
-    '<text ' + titleAttrs + ' fill="#fff" stroke="#e9a72f" stroke-width="9" paint-order="stroke">' + issueLabel + '</text>' +
-    '<text ' + titleAttrs + ' fill="#fff" stroke="#5b0b08" stroke-width="5" paint-order="stroke">' + issueLabel + '</text>' +
-    '<text x="913" y="1490" text-anchor="middle" font-family="' + HC.font + '" font-size="44" font-weight="700" fill="#fff" textLength="104" lengthAdjust="spacing">' + prevNumber + '</text>' +
+    '<g transform="translate(2 2)" opacity="0.3">' + hcTextParts(issue, prevNumber, '#0a4628') + '</g>' +
+    hcTextParts(issue, prevNumber, '#fff') +
     '<path d="' + outline + '" fill="none" stroke="rgba(0,60,20,.18)" stroke-width="' + (HC.frameWidth + 4) + '" stroke-linejoin="round" stroke-linecap="round"/>' +
     '<path d="' + outline + '" fill="none" stroke="#fff" stroke-width="' + HC.frameWidth + '" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>';
