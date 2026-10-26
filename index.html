@@ -1096,7 +1096,7 @@ function hcPickWindow(base, prevNumber) {
         if (!bestMatch ||
             compact < bestMatch.compact - 1e-6 ||
             (Math.abs(compact - bestMatch.compact) <= 1e-6 && centerError < bestMatch.centerError - 1e-6)) {
-          bestMatch = { compact, centerError };
+          bestMatch = { compact, centerError, picked: picked.map(p => p.index) };
         }
         return;
       }
@@ -1114,32 +1114,34 @@ function hcPickWindow(base, prevNumber) {
     if (bestMatch && (!best ||
         bestMatch.compact < best.compact - 1e-6 ||
         (Math.abs(bestMatch.compact - best.compact) <= 1e-6 && bestMatch.centerError < best.centerError - 1e-6))) {
-      best = { compact: bestMatch.compact, centerError: bestMatch.centerError, cells };
+      best = { compact: bestMatch.compact, centerError: bestMatch.centerError, cells, picked: bestMatch.picked };
     }
   });
-  return best ? best.cells : null;
+  if (!best) return null;
+  const centers = best.cells.map(p => center(p.r, p.c));
+  const pc = best.picked.map(i => centers[i]);
+  const rest = best.cells.map((p, i) => i).filter(i => !best.picked.includes(i));
+  let bestRef = null;
+  for (let a = 0; a < rest.length; a++) {
+    for (let b = a + 1; b < rest.length; b++) {
+      for (let c = b + 1; c < rest.length; c++) {
+        const trio = [rest[a], rest[b], rest[c]];
+        let sum = 0;
+        trio.forEach(i => pc.forEach(q => { sum += dist(centers[i], q); }));
+        if (!bestRef || sum < bestRef.sum - 1e-6) bestRef = { sum, trio };
+      }
+    }
+  }
+  const trio = bestRef ? bestRef.trio.slice().sort((x, y) => x - y) : [];
+  const ref = trio.map(i => base.digits[best.cells[i].r][best.cells[i].c]).join('');
+  return { cells: best.cells, ref };
 }
 
 const HC_TITLE = {
-  cnSize: 60,
-  cnScale: 1.16,
-  digitSize: 75,
-  digitScale: 1.30,
-  cnBaseline: 314,
-  digitBaseline: 316,
-  left: { ch: '第', x: 562 },
-  right: { ch: '期', x: 1002.5 },
-  digitX: [628, 680, 731.5, 783.5, 834.5, 885, 937],
-  labelX: [619.5, 656.5, 692, 731, 765.5, 799],
-  labelBaseline: 1488,
-  labelSize: 27,
-  bracketX: [839, 985],
-  bracketBaseline: 1489,
-  bracketSize: 30,
-  numberX: [876, 911.5, 948],
-  numberBaseline: 1491,
-  numberSize: 42,
-  numberScale: 1.66
+  brand: { text: '福彩3D', x: 440, size: 60, baseline: 330 },
+  issue: { size: 62, baseline: 332, x: 762 },
+  foot: { size: 36, x: 150, baseline1: 1442, baseline2: 1508 },
+  prev: { text: '< 上期', x: 62, size: 30, baseline: 1510 }
 };
 
 function hcTextChar(ch, x, y, size, scale, weight, fill) {
@@ -1152,40 +1154,42 @@ function hcTextChar(ch, x, y, size, scale, weight, fill) {
   return '<text x="' + x + '" y="' + y + '" text-anchor="middle" ' + attrs + '>' + ch + '</text>';
 }
 
-function hcTextParts(issue, prevNumber, fill) {
+function hcTxt(ch, x, y, size, fill, weight, anchor) {
+  return '<text x="' + x + '" y="' + y + '" text-anchor="' + (anchor || 'middle') + '" font-family="' + HC.font + '" font-size="' + size + '" fill="' + fill + '"' +
+    (weight ? ' stroke="' + fill + '" stroke-width="' + weight + '" paint-order="stroke" stroke-linejoin="round"' : '') + '>' + ch + '</text>';
+}
+
+function hcTextParts(issue, prevNumber, ref, tone) {
   const t = HC_TITLE;
-  const parts = [hcTextChar(t.left.ch, t.left.x, t.cnBaseline, t.cnSize, t.cnScale, 4.2, fill)];
-  String(issue).split('').forEach((d, i) => {
-    const x = t.digitX[i] || (t.digitX[t.digitX.length - 1] + 52 * (i - 6));
-    parts.push(hcTextChar(d, x, t.digitBaseline, t.digitSize, t.digitScale, 4.4, fill));
-  });
-  parts.push(hcTextChar(t.right.ch, t.right.x, t.cnBaseline, t.cnSize, t.cnScale, 4.2, fill));
-  '上期开奖号：'.split('').forEach((ch, i) => {
-    parts.push(hcTextChar(ch, t.labelX[i], t.labelBaseline, t.labelSize, 1, 1.6, fill));
-  });
-  String(prevNumber).split('').forEach((d, i) => {
-    const x = t.numberX[i] || (t.numberX[t.numberX.length - 1] + 36 * (i - 2));
-    parts.push(hcTextChar(d, x, t.numberBaseline, t.numberSize, t.numberScale, 4.0, fill));
-  });
-  parts.push(hcTextChar('【', t.bracketX[0], t.bracketBaseline, t.bracketSize, 1, 2.2, fill));
-  parts.push(hcTextChar('】', t.bracketX[1], t.bracketBaseline, t.bracketSize, 1, 2.2, fill));
+  const main = tone === 'shadow' ? '#2c6539' : '#fff';
+  const accent = tone === 'shadow' ? '#7a6a12' : '#ffe14d';
+  const parts = [];
+  parts.push(hcTxt(t.brand.text, t.brand.x, t.brand.baseline, t.brand.size, main, 3.6));
+  parts.push(hcTxt('第' + issue + '期', t.issue.x, t.issue.baseline, t.issue.size, accent, 3.6));
+  parts.push(hcTxt(t.prev.text, t.prev.x, t.prev.baseline, t.prev.size, tone === 'shadow' ? 'rgba(0,0,0,.25)' : 'rgba(255,255,255,.92)', 0, 'start'));
+  parts.push('<text x="' + t.foot.x + '" y="' + t.foot.baseline1 + '" font-family="' + HC.font + '" font-size="' + t.foot.size + '" fill="' + main + '">' +
+    '说明：选中 <tspan fill="' + accent + '">◆</tspan> 移动位置，找到上期开奖号<tspan fill="' + accent + '">【' + prevNumber + '】</tspan></text>');
+  parts.push('<text x="' + t.foot.x + '" y="' + t.foot.baseline2 + '" font-family="' + HC.font + '" font-size="' + t.foot.size + '" fill="' + main + '">' +
+    '用上期开奖号周边的蜂窝作为下期参考<tspan fill="' + accent + '">【' + ref + '】</tspan></text>');
   return parts.join('');
 }
 
 function hcBuildChart(base, prevNumber, issue) {
   if (!base || !Array.isArray(base.digits)) return null;
-  const windowCells = hcPickWindow(base, prevNumber);
-  if (!windowCells) return null;
+  const picked = hcPickWindow(base, prevNumber);
+  if (!picked) return null;
+  const windowCells = picked.cells;
+  const ref = picked.ref;
   const outline = hcOutlinePath(windowCells);
   const pool = windowCells.map(cell => base.digits[cell.r][cell.c]).join(' ');
   const svg = '<svg viewBox="0 0 ' + HC.imageW + ' ' + HC.imageH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="蜂巢九宫寻宝图，第' + issue + '期">' +
     '<image href="' + HC.image + '" x="0" y="0" width="' + HC.imageW + '" height="' + HC.imageH + '" preserveAspectRatio="none"/>' +
-    '<g transform="translate(2 2)" opacity="0.3">' + hcTextParts(issue, prevNumber, '#0a4628') + '</g>' +
-    hcTextParts(issue, prevNumber, '#fff') +
+    '<g transform="translate(3 4)" opacity="0.5">' + hcTextParts(issue, prevNumber, ref, 'shadow') + '</g>' +
+    hcTextParts(issue, prevNumber, ref, 'main') +
     '<path d="' + outline + '" fill="none" stroke="rgba(0,60,20,.18)" stroke-width="' + (HC.frameWidth + 4) + '" stroke-linejoin="round" stroke-linecap="round"/>' +
     '<path d="' + outline + '" fill="none" stroke="#fff" stroke-width="' + HC.frameWidth + '" stroke-linejoin="round" stroke-linecap="round"/>' +
     '</svg>';
-  return { svg, pool, count: windowCells.length };
+  return { svg, pool, ref, count: windowCells.length };
 }
 function buildHoneycombCard(staticDraws, base) {
   const latest = hcLatestDraw(staticDraws);
@@ -1194,13 +1198,13 @@ function buildHoneycombCard(staticDraws, base) {
   const targetIssue = Number(latest.issue) + diff;
   const chart = hcBuildChart(base, latest.number, targetIssue);
   if (!chart) return '';
-  const chips = chart.pool.split(' ').map(d => '<span class="hc-digit">' + d + '</span>').join('');
+  const chips = String(chart.ref || '').split('').map(d => '<span class="hc-digit">' + d + '</span>').join('');
   return '<article class="ref-card hc-card">' +
     '<div class="hc-chart">' + chart.svg + '</div>' +
     '<div class="hc-info">' +
-      '<div class="hc-pool"><span class="hc-pool-label">窗口参考号</span>' + chips +
-        '<button class="hc-copy" type="button" data-pool="' + chart.pool + '">复制</button></div>' +
-      '<p class="hc-note">底图数字和颜色固定；期号与上期开奖号自动更新，仅移动14格白框；仅供娱乐参考。</p>' +
+      '<div class="hc-pool"><span class="hc-pool-label">下期参考</span>' + chips +
+        '<button class="hc-copy" type="button" data-pool="' + (chart.ref || '') + '">复制</button></div>' +
+      '<p class="hc-note">底图固定，仅移动14格白框；仅供参考，不保证中奖。</p>' +
     '</div>' +
   '</article>';
 }
