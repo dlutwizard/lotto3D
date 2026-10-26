@@ -1,5 +1,5 @@
 {
- "issue": "2026284",
+ "issue": "2026285",
  "rows": 17,
  "cols": [
   15,
@@ -63,5 +63,5 @@
   "rgrrgrbbrbbrbggr",
   "brgbbbbrrggrrgb"
  ],
- "source": "reference chart 2026284, verified against official chart and AI base image"
+ "source": "official 2026285 chart (wx image), color verified 263/263, aligned to app lattice"
 }
