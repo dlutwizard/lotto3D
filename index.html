@@ -1138,8 +1138,8 @@ function hcPickWindow(base, prevNumber) {
 }
 
 const HC_TITLE = {
-  brand: { text: '福彩3D', x: 440, size: 60, baseline: 330 },
-  issue: { size: 62, baseline: 332, x: 762 },
+  brand: { text: '蜂巢寻宝图', x: 799, size: 116, baseline: 300 },
+  issue: { size: 58, baseline: 300, x: 338 },
   foot: { size: 36, x: 150, baseline1: 1442, baseline2: 1508 },
   prev: { text: '< 上期', x: 62, size: 30, baseline: 1510 }
 };
@@ -1165,7 +1165,7 @@ function hcTextParts(issue, prevNumber, ref, tone) {
   const accent = tone === 'shadow' ? '#7a6a12' : '#ffe14d';
   const parts = [];
   parts.push(hcTxt(t.brand.text, t.brand.x, t.brand.baseline, t.brand.size, main, 3.6));
-  parts.push(hcTxt('第' + issue + '期', t.issue.x, t.issue.baseline, t.issue.size, accent, 3.6));
+  parts.push(hcTxt(issue + '期', t.issue.x, t.issue.baseline, t.issue.size, accent, 3.6));
   parts.push(hcTxt(t.prev.text, t.prev.x, t.prev.baseline, t.prev.size, tone === 'shadow' ? 'rgba(0,0,0,.25)' : 'rgba(255,255,255,.92)', 0, 'start'));
   parts.push('<text x="' + t.foot.x + '" y="' + t.foot.baseline1 + '" font-family="' + HC.font + '" font-size="' + t.foot.size + '" fill="' + main + '">' +
     '说明：选中 <tspan fill="' + accent + '">◆</tspan> 移动位置，找到上期开奖号<tspan fill="' + accent + '">【' + prevNumber + '】</tspan></text>');
