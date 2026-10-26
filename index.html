@@ -164,6 +164,7 @@ input[type=date] { max-width: 165px; }
 .hc-avatar { background: linear-gradient(135deg, #f5b82e, #e08b00); box-shadow: 0 2px 6px rgba(180, 105, 0, .25); }
 .hc-chart { padding: 0; background: #eaf6ea; }
 .hc-chart svg { display: block; width: 100%; height: auto; }
+.hc-official { display: block; width: 100%; height: auto; }
 .hc-info { padding: 10px 13px 12px; }
 .hc-tip { margin: 0; color: #3f6b48; font-size: 12px; line-height: 1.65; }
 .hc-tip b { color: #b42318; font-variant-numeric: tabular-nums; }
@@ -969,6 +970,12 @@ const HC = {
   frameWidth: 9,
   font: "'HCYuan','YouYuan','Microsoft YaHei',sans-serif"
 };
+const HC_OFFICIAL = {
+  issue: 2026286,
+  prev: '202',
+  ref: '932',
+  image: 'hc-official-2026286.png'
+};
 let hcBaseCache = null;
 
 function hcDateValue(date) {
@@ -1196,15 +1203,19 @@ function buildHoneycombCard(staticDraws, base) {
   if (!latest || !base) return '';
   const diff = Math.max(1, Math.round(hcDateValue(todayStr()) - hcDateValue(latest.date)) || 1);
   const targetIssue = Number(latest.issue) + diff;
-  const chart = hcBuildChart(base, latest.number, targetIssue);
+  const official = targetIssue === HC_OFFICIAL.issue && latest.number === HC_OFFICIAL.prev ? HC_OFFICIAL : null;
+  const chart = official ? { ref: official.ref, official: true } : hcBuildChart(base, latest.number, targetIssue);
   if (!chart) return '';
   const chips = String(chart.ref || '').split('').map(d => '<span class="hc-digit">' + d + '</span>').join('');
+  const chartMarkup = official
+    ? '<img class="hc-official" src="' + official.image + '" alt="第' + targetIssue + '期蜂巢九宫寻宝图">'
+    : chart.svg;
   return '<article class="ref-card hc-card">' +
-    '<div class="hc-chart">' + chart.svg + '</div>' +
+    '<div class="hc-chart">' + chartMarkup + '</div>' +
     '<div class="hc-info">' +
       '<div class="hc-pool"><span class="hc-pool-label">下期参考</span>' + chips +
         '<button class="hc-copy" type="button" data-pool="' + (chart.ref || '') + '">复制</button></div>' +
-      '<p class="hc-note">底图固定，仅移动14格白框；仅供参考，不保证中奖。</p>' +
+      '<p class="hc-note">' + (official ? '官方原图；仅供娱乐参考，不保证中奖。' : '底图固定，仅移动14格白框；仅供参考，不保证中奖。') + '</p>' +
     '</div>' +
   '</article>';
 }
