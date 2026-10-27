@@ -1,50 +1,50 @@
 {
-  "updatedAt": "2026-10-27T04:30:10.865Z",
+  "updatedAt": "2026-10-27T12:10:11.460Z",
   "items": [
     {
       "id": "yuhaiobin",
       "name": "于海滨",
-      "issue": "2026286",
-      "publishedAt": "2026-10-26 20:16",
-      "source": "https://www.800820.net/p/11530856.html",
+      "issue": "2026287",
+      "publishedAt": "2026-10-27 20:08",
+      "source": "https://www.800820.net/p/11533923.html",
       "fields": [
         {
           "label": "胆码",
-          "value": "5 6 8"
+          "value": "8 4 6"
         },
         {
           "label": "搭配",
-          "value": "7 9 2"
+          "value": "3 2 9"
         },
         {
           "label": "两码防",
-          "value": "18 59 36 42"
+          "value": "83 41 70 26"
         },
         {
           "label": "和值",
-          "value": "16 18 17 20"
+          "value": "19 13 18 10"
         },
         {
           "label": "跨度",
-          "value": "5 7"
+          "value": "4 5"
         },
         {
           "label": "组三",
-          "value": "33 44 66"
+          "value": "33 66 77"
         }
       ],
       "notes": [
         {
           "label": "专家一语定胆",
-          "text": "折弯单线环连环 · 解059"
+          "text": "双弯单环折连弯 · 解028"
         },
         {
           "label": "天天彩精选",
-          "text": "胆 136 · 精选看好 36"
+          "text": "胆 159 · 精选看好 15"
         }
       ],
-      "image": "https://pic1.800820.net/tumi/20261026/f83d91cc364048b8828e47ae467ad2a7.webp",
-      "fetchedAt": "2026-10-27T04:30:10.863Z"
+      "image": "https://pic1.800820.net/tumi/20261027/b18a057fcfee484b95471f04f7a0c7f4.webp",
+      "fetchedAt": "2026-10-27T12:10:11.456Z"
     }
   ]
 }
