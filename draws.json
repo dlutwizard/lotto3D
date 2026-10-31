@@ -1,8 +1,13 @@
 {
-  "updatedAt": "2026-10-30T13:25:06.781Z",
+  "updatedAt": "2026-10-31T13:25:08.891Z",
   "source": "https://lotto.sina.cn/trend/lotto_zst_proxy.d.json?lottoType=3d&actionType=chzs&type=50&sourceName=bd&callback=zst",
   "fallbackSource": "https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=3d&issueCount=30",
   "draws": {
+    "2026-10-31": {
+      "issue": "2026290",
+      "number": "735",
+      "source": "sina"
+    },
     "2026-10-30": {
       "issue": "2026289",
       "number": "843",
