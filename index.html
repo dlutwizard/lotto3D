@@ -192,6 +192,11 @@ input[type=date] { max-width: 165px; }
 .calc-glossary summary { color: var(--primary); cursor: pointer; font-weight: 500; }
 .calc-glossary ul { margin: 6px 0 0 18px; line-height: 1.75; }
 .calc-glossary code { font-family: inherit; color: var(--text); font-weight: 600; }
+.ticket-groups { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.ticket-group { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.ticket-group-head { display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--text2); font-size: 12px; }
+.ticket-group-head b { color: var(--text); }
+.ticket-list { display: flex; flex-wrap: wrap; gap: 5px; max-height: 240px; overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -414,6 +419,45 @@ input[type=date] { max-width: 165px; }
       <div class="row" style="margin-top:8px">
         <button class="btn danger" id="clearStrategyBtn" style="flex:1">一键清空策略</button>
       </div>
+    </div>
+
+    <!-- 买法展开 -->
+    <div class="card">
+      <h2>🧩 五码 / 胆拖展开</h2>
+      <p class="tip" style="margin:-4px 0 10px">选了五码或胆拖，直接把全部组合列出来，照着打票更方便。</p>
+      <div class="row">
+        <label>买法</label>
+        <select id="recMethod">
+          <option value="zu6_fs">组六复式（五码/六码…）</option>
+          <option value="zu3_fs">组三复式</option>
+          <option value="zu_all">组选全包（组三+组六）</option>
+          <option value="zu6_dt">组六胆拖</option>
+          <option value="zu3_dt">组三胆拖</option>
+          <option value="zx_fs">直选复式</option>
+          <option value="bao_sum">包和值</option>
+          <option value="bao_span">包跨度</option>
+        </select>
+      </div>
+      <div id="recFields" class="calc-fields"></div>
+      <p class="tip" id="recHint" style="margin:-2px 0 8px"></p>
+      <div class="row">
+        <label>单注金额</label>
+        <input type="number" id="recUnit" min="1" value="2" style="max-width:64px" />
+        <label style="min-width:auto">元</label>
+      </div>
+      <div class="row">
+        <label>定胆</label>
+        <input type="text" id="recMust" placeholder="可选，号码里必须出现" />
+      </div>
+      <div class="row">
+        <label>杀号</label>
+        <input type="text" id="recAvoid" placeholder="可选，排除这些数字" />
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="recExpandBtn" type="button" style="flex:1">展开全部号码</button>
+        <button class="btn ghost" id="recAddBtn" type="button" style="flex:1" disabled>加入投注记录</button>
+      </div>
+      <div id="recExpandResult"></div>
     </div>
 
     <!-- 试机号 -->
@@ -653,17 +697,16 @@ function calcSortTickets(items) {
   const order = { zhixuan: 0, zu3: 1, zu6: 2 };
   return items.slice().sort((a, b) => order[a.type] - order[b.type] || a.num.localeCompare(b.num));
 }
-function calcBuildTickets() {
-  const method = $('calcMethod').value;
+function buildTickets(method, values) {
   const items = [];
   const push = (num, type) => items.push({ num, type });
-  const digitsOf = id => parseDigits($(id) ? $(id).value : '');
+  const digits = key => parseDigits(values[key] || '');
   if (method === 'zx_fs') {
-    const b = digitsOf('calcBai'), s = digitsOf('calcShi'), g = digitsOf('calcGe');
+    const b = digits('bai'), s = digits('shi'), g = digits('ge');
     if (!b.length || !s.length || !g.length) return { error: '百位、十位、个位都要至少选 1 个数字' };
     b.forEach(x => s.forEach(y => g.forEach(z => push('' + x + y + z, 'zhixuan'))));
   } else if (method === 'zu6_fs' || method === 'zu3_fs' || method === 'zu_all') {
-    const d = digitsOf('calcDigits');
+    const d = digits('digits');
     if (method === 'zu6_fs') {
       if (d.length < 3) return { error: '组六复式至少选 3 个号码' };
       calcZu6(d).forEach(n => push(n, 'zu6'));
@@ -676,8 +719,8 @@ function calcBuildTickets() {
       calcZu6(d).forEach(n => push(n, 'zu6'));
     }
   } else if (method === 'zu6_dt') {
-    const dan = digitsOf('calcDan');
-    const tuo = digitsOf('calcTuo').filter(x => !dan.includes(x));
+    const dan = digits('dan');
+    const tuo = digits('tuo').filter(x => !dan.includes(x));
     if (!dan.length) return { error: '请先填胆码' };
     if (dan.length > 2) return { error: '组六胆拖最多 2 个胆码' };
     if (dan.length === 1) {
@@ -688,8 +731,8 @@ function calcBuildTickets() {
       tuo.forEach(t => push([dan[0], dan[1], t].sort().join(''), 'zu6'));
     }
   } else if (method === 'zu3_dt') {
-    const dan = digitsOf('calcDan');
-    const tuo = digitsOf('calcTuo').filter(x => !dan.includes(x));
+    const dan = digits('dan');
+    const tuo = digits('tuo').filter(x => !dan.includes(x));
     if (!dan.length) return { error: '请先填胆码' };
     if (dan.length > 2) return { error: '组三胆拖最多 2 个胆码' };
     if (dan.length === 1) {
@@ -704,10 +747,10 @@ function calcBuildTickets() {
     }
   } else if (method === 'bao_sum' || method === 'bao_span') {
     const isSum = method === 'bao_sum';
-    const nums = calcParseList($('calcNums').value, 0, isSum ? 27 : 9);
+    const nums = calcParseList(values.nums || '', 0, isSum ? 27 : 9);
     if (!nums.length) return { error: isSum ? '请填 0-27 之间的和值' : '请填 0-9 之间的跨度' };
     const set = new Set(nums);
-    const mode = $('calcMode').value;
+    const mode = values.mode || 'zu_all';
     for (let n = 0; n < 1000; n++) {
       const a = Math.floor(n / 100), b = Math.floor(n / 10) % 10, c = n % 10;
       const key = isSum ? a + b + c : Math.max(a, b, c) - Math.min(a, b, c);
@@ -724,9 +767,22 @@ function calcBuildTickets() {
   }
   return { items };
 }
-function calcApplyFilters(items) {
-  const must = parseDigits($('calcMust').value);
-  const avoid = parseDigits($('calcAvoid').value);
+function calcBuildTickets() {
+  const values = {
+    digits: $('calcDigits') ? $('calcDigits').value : '',
+    bai: $('calcBai') ? $('calcBai').value : '',
+    shi: $('calcShi') ? $('calcShi').value : '',
+    ge: $('calcGe') ? $('calcGe').value : '',
+    dan: $('calcDan') ? $('calcDan').value : '',
+    tuo: $('calcTuo') ? $('calcTuo').value : '',
+    nums: $('calcNums') ? $('calcNums').value : '',
+    mode: $('calcMode') ? $('calcMode').value : 'zu_all'
+  };
+  return buildTickets($('calcMethod').value, values);
+}
+function applyTicketFilters(items, mustText, avoidText) {
+  const must = parseDigits(mustText);
+  const avoid = parseDigits(avoidText);
   const seen = new Set();
   return items.filter(item => {
     const ds = item.num.split('');
@@ -737,6 +793,9 @@ function calcApplyFilters(items) {
     seen.add(key);
     return true;
   });
+}
+function calcApplyFilters(items) {
+  return applyTicketFilters(items, $('calcMust').value, $('calcAvoid').value);
 }
 function calcInputRow(label, id, placeholder) {
   return '<div class="row"><label>' + label + '</label><input type="text" id="' + id + '" placeholder="' + placeholder + '" /></div>';
@@ -883,6 +942,164 @@ function initBuyCalc() {
   $('calcBtn').onclick = calcCompute;
   $('calcAddBtn').onclick = calcAddToBets;
   resetCalcResult();
+}
+
+// === 选号推荐页：五码 / 胆拖展开 ===
+const REC_KEY = 'lotto_rec_expander';
+let recDrafts = {};
+let recTickets = [];
+let recUnit = 2;
+let recAdded = false;
+
+function recFieldId(key) {
+  return key === 'mode' ? 'recMode' : 'rec' + key.charAt(0).toUpperCase() + key.slice(1);
+}
+function recRenderFields() {
+  const method = $('recMethod').value;
+  const def = CALC_METHODS[method];
+  $('recFields').innerHTML = def.fields.map(([key, label, ph]) => {
+    if (key === 'mode') {
+      return '<div class="row"><label>展开</label><select id="recMode">' +
+        '<option value="zx">直选拆注</option>' +
+        '<option value="zu6">组六拆注</option>' +
+        '<option value="zu3">组三拆注</option>' +
+        '<option value="zu_all" selected>组三+组六</option>' +
+        '</select></div>';
+    }
+    return '<div class="row"><label>' + label + '</label><input type="text" id="' + recFieldId(key) + '" placeholder="' + ph + '" /></div>';
+  }).join('');
+  $('recHint').textContent = def.hint;
+  const draft = recDrafts[method] || {};
+  def.fields.forEach(([key]) => {
+    const id = recFieldId(key);
+    if (draft[key] !== undefined && $(id)) $(id).value = draft[key];
+  });
+  resetRecResult();
+}
+function recSaveDraft(method) {
+  method = method || $('recMethod').value;
+  const def = CALC_METHODS[method];
+  const draft = {};
+  def.fields.forEach(([key]) => {
+    const id = recFieldId(key);
+    if ($(id)) draft[key] = $(id).value;
+  });
+  recDrafts[method] = draft;
+  recSaveState();
+}
+function recSaveState() {
+  try {
+    localStorage.setItem(REC_KEY, JSON.stringify({
+      method: $('recMethod').value,
+      unit: $('recUnit').value,
+      must: $('recMust').value,
+      avoid: $('recAvoid').value,
+      drafts: recDrafts
+    }));
+  } catch (e) {}
+}
+function resetRecResult() {
+  recTickets = [];
+  recAdded = false;
+  const add = $('recAddBtn');
+  if (add) { add.disabled = true; add.textContent = '加入投注记录'; }
+  const box = $('recExpandResult');
+  if (box) box.innerHTML = '<div class="calc-empty">选好买法和号码，点“展开全部号码”。</div>';
+}
+function recRenderResult(items, unit, warning) {
+  const n = items.length;
+  const typeNames = { zhixuan: '直选', zu3: '组三', zu6: '组六' };
+  let groups = '';
+  ['zhixuan', 'zu3', 'zu6'].forEach(type => {
+    const list = items.filter(item => item.type === type);
+    if (!list.length) return;
+    groups += '<div class="ticket-group"><div class="ticket-group-head"><span>' + typeNames[type] +
+      '</span><b>' + list.length + ' 注</b></div><div class="ticket-list">' +
+      list.map(item => '<span class="calc-chip ' + type + '">' + item.num + '</span>').join('') +
+      '</div></div>';
+  });
+  let html = '<div class="calc-summary">' +
+    '<div><span>注数</span><b>' + n + '</b></div>' +
+    '<div><span>合计</span><b>' + (n * unit) + ' 元</b></div>' +
+    '<div><span>单注</span><b>' + unit + ' 元</b></div>' +
+  '</div>';
+  if (warning) html += '<div class="calc-warn">' + warning + '</div>';
+  if (n) html += '<div class="ticket-groups">' + groups + '</div>';
+  else html += '<div class="calc-empty">没有符合条件的号码，放宽条件或去掉定胆/杀号试试。</div>';
+  $('recExpandResult').innerHTML = html;
+  const add = $('recAddBtn');
+  add.disabled = !n || n > CALC_MAX_ADD;
+  add.textContent = '加入投注记录' + (n ? '（' + n + '注）' : '');
+}
+function recCompute() {
+  recSaveDraft();
+  const values = {
+    digits: $('recDigits') ? $('recDigits').value : '',
+    bai: $('recBai') ? $('recBai').value : '',
+    shi: $('recShi') ? $('recShi').value : '',
+    ge: $('recGe') ? $('recGe').value : '',
+    dan: $('recDan') ? $('recDan').value : '',
+    tuo: $('recTuo') ? $('recTuo').value : '',
+    nums: $('recNums') ? $('recNums').value : '',
+    mode: $('recMode') ? $('recMode').value : 'zu_all'
+  };
+  const built = buildTickets($('recMethod').value, values);
+  if (built.error) {
+    $('recExpandResult').innerHTML = '<div class="calc-warn">' + built.error + '</div>';
+    $('recAddBtn').disabled = true;
+    recTickets = [];
+    return;
+  }
+  const unit = Math.max(1, parseInt($('recUnit').value, 10) || 2);
+  recUnit = unit;
+  const items = calcSortTickets(applyTicketFilters(built.items, $('recMust').value, $('recAvoid').value));
+  let warning = '';
+  if (items.length > CALC_MAX_ADD) warning = '注数超过 ' + CALC_MAX_ADD + '，暂时不能一键加入，请先缩窄范围。';
+  recTickets = items;
+  recAdded = false;
+  recRenderResult(items, unit, warning);
+  recSaveState();
+}
+function recAddToBets() {
+  if (!recTickets.length || recAdded || recTickets.length > CALC_MAX_ADD) return;
+  const date = $('betDate').value || todayStr();
+  const total = recTickets.length * recUnit;
+  if (recTickets.length > 100 && !confirm('将写入 ' + recTickets.length + ' 注，共 ' + total + ' 元到 ' + date + '，确定吗？')) return;
+  const bets = getBets();
+  recTickets.forEach(item => bets.push({ num: item.num, type: item.type, amount: recUnit, date }));
+  saveBets(bets);
+  renderBets();
+  renderStats();
+  renderDayResult($('drawDate').value || todayStr());
+  recAdded = true;
+  const add = $('recAddBtn');
+  add.disabled = true;
+  add.textContent = '已加入 ' + recTickets.length + ' 注';
+  alert('已加入 ' + recTickets.length + ' 注，共 ' + total + ' 元\n日期：' + date);
+}
+function initRecExpander() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(REC_KEY) || '{}') || {}; } catch (e) {}
+  if (saved.drafts && typeof saved.drafts === 'object') recDrafts = saved.drafts;
+  if (saved.method && CALC_METHODS[saved.method]) $('recMethod').value = saved.method;
+  if (saved.unit) $('recUnit').value = saved.unit;
+  if (saved.must) $('recMust').value = saved.must;
+  if (saved.avoid) $('recAvoid').value = saved.avoid;
+  recRenderFields();
+  let prevMethod = $('recMethod').value;
+  $('recMethod').onchange = () => {
+    recSaveDraft(prevMethod);
+    prevMethod = $('recMethod').value;
+    recRenderFields();
+  };
+  $('recFields').addEventListener('input', () => { recSaveDraft(); resetRecResult(); });
+  $('recFields').addEventListener('change', () => { recSaveDraft(); resetRecResult(); });
+  $('recUnit').addEventListener('input', resetRecResult);
+  $('recMust').addEventListener('input', resetRecResult);
+  $('recAvoid').addEventListener('input', resetRecResult);
+  $('recExpandBtn').onclick = recCompute;
+  $('recAddBtn').onclick = recAddToBets;
+  resetRecResult();
 }
 
 // === 开奖计算 ===
@@ -1727,6 +1944,7 @@ document.querySelectorAll('.tab').forEach(t => {
   t.onclick = () => switchView(t.dataset.view);
 });
 
+initRecExpander();
 initBuyCalc();
 loadState();
 $('betDate').value = defaultBetDate();
