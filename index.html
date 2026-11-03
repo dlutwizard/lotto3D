@@ -197,6 +197,10 @@ input[type=date] { max-width: 165px; }
 .ticket-group-head { display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--text2); font-size: 12px; }
 .ticket-group-head b { color: var(--text); }
 .ticket-list { display: flex; flex-wrap: wrap; gap: 5px; max-height: 240px; overflow-y: auto; }
+.calc-copy-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+.ticket-group-meta { display: flex; align-items: center; gap: 8px; }
+.ticket-copy { padding: 3px 8px; border: 1px solid #c7d2fe; border-radius: 6px; background: #eef2ff; color: var(--primary); font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ticket-copy:active { background: #e0e7ff; }
 </style>
 </head>
 <body>
@@ -1013,8 +1017,11 @@ function recRenderResult(items, unit, warning) {
   ['zhixuan', 'zu3', 'zu6'].forEach(type => {
     const list = items.filter(item => item.type === type);
     if (!list.length) return;
+    const groupText = list.map(item => item.num).join(' ');
     groups += '<div class="ticket-group"><div class="ticket-group-head"><span>' + typeNames[type] +
-      '</span><b>' + list.length + ' 注</b></div><div class="ticket-list">' +
+      '</span><span class="ticket-group-meta"><b>' + list.length + ' 注</b>' +
+      '<button class="ticket-copy" type="button" data-copy="' + groupText + '" data-label="复制">复制</button>' +
+      '</span></div><div class="ticket-list">' +
       list.map(item => '<span class="calc-chip ' + type + '">' + item.num + '</span>').join('') +
       '</div></div>';
   });
@@ -1024,6 +1031,8 @@ function recRenderResult(items, unit, warning) {
     '<div><span>单注</span><b>' + unit + ' 元</b></div>' +
   '</div>';
   if (warning) html += '<div class="calc-warn">' + warning + '</div>';
+  if (n) html += '<div class="calc-copy-row"><button class="ticket-copy" type="button" data-copy="' +
+    items.map(item => item.num).join(' ') + '" data-label="复制全部（' + n + '注）">复制全部（' + n + '注）</button></div>';
   if (n) html += '<div class="ticket-groups">' + groups + '</div>';
   else html += '<div class="calc-empty">没有符合条件的号码，放宽条件或去掉定胆/杀号试试。</div>';
   $('recExpandResult').innerHTML = html;
@@ -1099,6 +1108,18 @@ function initRecExpander() {
   $('recAvoid').addEventListener('input', resetRecResult);
   $('recExpandBtn').onclick = recCompute;
   $('recAddBtn').onclick = recAddToBets;
+  $('recExpandResult').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-copy]');
+    if (!btn) return;
+    const text = btn.dataset.copy || '';
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = '已复制';
+      setTimeout(() => { btn.textContent = btn.dataset.label || '复制'; }, 1500);
+    } catch (err) {
+      alert(text);
+    }
+  });
   resetRecResult();
 }
 
