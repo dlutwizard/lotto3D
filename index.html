@@ -173,6 +173,25 @@ input[type=date] { max-width: 165px; }
 .hc-digit { display: grid; place-items: center; width: 20px; height: 22px; border-radius: 6px; background: #fff; color: #14532d; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; box-shadow: 0 1px 3px rgba(20, 83, 45, .12); }
 .hc-copy { margin-left: auto; padding: 4px 9px; border: 1px solid #cfe4d1; border-radius: 8px; background: #fff; color: #15803d; font-family: inherit; font-size: 11px; font-weight: 700; }
 .hc-note { margin: 8px 0 0; color: #94a3b8; font-size: 10px; }
+
+/* 黑话买法速算 */
+.calc-fields .row:last-child { margin-bottom: 0; }
+.calc-summary { display: flex; gap: 8px; margin-top: 10px; }
+.calc-summary > div { flex: 1; padding: 8px 6px; border: 1px solid var(--border); border-radius: 9px; background: #f8fafc; text-align: center; }
+.calc-summary span { display: block; color: var(--text3); font-size: 10px; }
+.calc-summary b { color: var(--text); font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.calc-breakdown { margin-top: 7px; color: var(--text2); font-size: 12px; }
+.calc-preview { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; max-height: 168px; overflow-y: auto; }
+.calc-chip { padding: 3px 7px; border-radius: 6px; font-size: 12px; font-weight: 700; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+.calc-chip.zhixuan { background: #eef2ff; color: #4338ca; }
+.calc-chip.zu3 { background: #fff7ed; color: #c2410c; }
+.calc-chip.zu6 { background: #f0fdf4; color: #15803d; }
+.calc-empty { margin-top: 10px; padding: 10px; border-radius: 8px; background: #f8fafc; color: var(--text3); font-size: 12px; text-align: center; }
+.calc-warn { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--warning-bg); color: #b45309; font-size: 12px; line-height: 1.5; }
+.calc-glossary { margin-top: 8px; font-size: 12px; color: var(--text2); }
+.calc-glossary summary { color: var(--primary); cursor: pointer; font-weight: 500; }
+.calc-glossary ul { margin: 6px 0 0 18px; line-height: 1.75; }
+.calc-glossary code { font-family: inherit; color: var(--text); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -180,7 +199,7 @@ input[type=date] { max-width: 165px; }
   <div class="topbar">
     <div class="header">
       <h1>🌱 3D 选号助手</h1>
-      <p>选号 · 记账 · 盈亏日历</p>
+      <p>选号 · 买法 · 记账 · 盈亏日历</p>
     </div>
     <nav class="tabs" role="tablist" aria-label="页面切换">
       <button class="tab active" type="button" data-view="main" role="tab" aria-selected="true">选号推荐</button>
@@ -208,6 +227,57 @@ input[type=date] { max-width: 165px; }
     </section>
 
     <section class="view" id="view-bets">
+    <!-- 黑话买法速算 -->
+    <div class="card">
+      <h2>🎯 黑话买法速算</h2>
+      <p class="tip" style="margin:-4px 0 10px">五码、胆拖、复式、包点、包跨度，先算注数和金额，再决定打不打。</p>
+      <div class="row">
+        <label>买法</label>
+        <select id="calcMethod">
+          <option value="zu6_fs">组六复式（五码/六码…）</option>
+          <option value="zu3_fs">组三复式</option>
+          <option value="zu_all">组选全包（组三+组六）</option>
+          <option value="zu6_dt">组六胆拖</option>
+          <option value="zu3_dt">组三胆拖</option>
+          <option value="zx_fs">直选复式</option>
+          <option value="bao_sum">包和值</option>
+          <option value="bao_span">包跨度</option>
+        </select>
+      </div>
+      <div id="calcFields" class="calc-fields"></div>
+      <p class="tip" id="calcHint" style="margin:-2px 0 8px"></p>
+      <div class="row">
+        <label>单注金额</label>
+        <input type="number" id="calcUnit" min="1" value="2" style="max-width:64px" />
+        <label style="min-width:auto">元</label>
+      </div>
+      <div class="row">
+        <label>定胆</label>
+        <input type="text" id="calcMust" placeholder="可选，号码里必须出现" />
+      </div>
+      <div class="row">
+        <label>杀号</label>
+        <input type="text" id="calcAvoid" placeholder="可选，排除这些数字" />
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="calcBtn" type="button" style="flex:1">计算注数 / 金额</button>
+        <button class="btn ghost" id="calcAddBtn" type="button" style="flex:1" disabled>加入投注记录</button>
+      </div>
+      <div id="calcResult"></div>
+      <details class="calc-glossary">
+        <summary>买法速查</summary>
+        <ul>
+          <li><code>五码组六</code> C(5,3)=10 注 20 元；六码 20 注，七码 35 注。</li>
+          <li><code>五码组三</code> 5×4=20 注 40 元；<code>五码全包</code> 30 注 60 元。</li>
+          <li><code>组六 1胆5拖</code> C(5,2)=10 注；<code>2胆4拖</code> 4 注。</li>
+          <li><code>组三 1胆5拖</code> 10 注（胆作对子 5 注 + 拖作对子 5 注）。</li>
+          <li><code>直选复式</code> 每位号码数相乘；3×3×3=27 注 54 元。</li>
+          <li><code>包点/包跨</code> 按单注拆开记账，奖金按直选/组三/组六算。</li>
+        </ul>
+      </details>
+      <p class="tip">加入后按单注拆开记录，开奖时逐注自动算奖；注数多时建议先杀号或缩窄范围。</p>
+    </div>
+
     <!-- 投注记录 -->
     <div class="card">
       <h2>📝 投注记录</h2>
@@ -493,6 +563,327 @@ $('betList').onclick = (e) => {
   renderStats();
   renderDayResult($('drawDate').value || todayStr());
 };
+
+// === 黑话买法速算 ===
+const CALC_MAX_ADD = 2000;
+const CALC_KEY = 'lotto_calc_state';
+const CALC_METHODS = {
+  zx_fs: {
+    label: '直选复式',
+    hint: '百/十/个位各选多个号码，自动做笛卡尔积。例：3×3×3=27注54元。',
+    fields: [['bai', '百位', '如 1 3 5'], ['shi', '十位', '如 0 4 7'], ['ge', '个位', '如 2 6 8']]
+  },
+  zu6_fs: {
+    label: '组六复式',
+    hint: '选 3 个以上号码，任取 3 个不同数字。五码10注20元，六码20注40元，七码35注70元。',
+    fields: [['digits', '选码', '如 1 3 5 7 8']]
+  },
+  zu3_fs: {
+    label: '组三复式',
+    hint: '选 2 个以上号码，任取一对 + 一个单号。五码20注40元。',
+    fields: [['digits', '选码', '如 1 3 5 7 8']]
+  },
+  zu_all: {
+    label: '组选全包',
+    hint: '同一组号码，组三和组六一起买。五码30注60元。',
+    fields: [['digits', '选码', '如 1 3 5 7 8']]
+  },
+  zu6_dt: {
+    label: '组六胆拖',
+    hint: '胆码必出，拖码补足 3 个不同数字。1胆5拖10注，2胆4拖4注。',
+    fields: [['dan', '胆码', '1-2 个，必出'], ['tuo', '拖码', '其余号码']]
+  },
+  zu3_dt: {
+    label: '组三胆拖',
+    hint: '1 个胆码：胆作对子或单号，1胆5拖10注；2 个胆码：只出 aab / abb 两注。',
+    fields: [['dan', '胆码', '1-2 个，必出'], ['tuo', '拖码', '其余号码']]
+  },
+  bao_sum: {
+    label: '包和值',
+    hint: '按和值展开成单注记账，可选直选/组三/组六。例：和值 18 按直选拆注。',
+    fields: [['nums', '和值', '如 11 12 13 或 11-19'], ['mode', '展开', '']]
+  },
+  bao_span: {
+    label: '包跨度',
+    hint: '按“最大号-最小号”展开成单注记账，可选直选/组三/组六。',
+    fields: [['nums', '跨度', '如 4 5 6'], ['mode', '展开', '']]
+  }
+};
+let calcDrafts = {};
+let calcTickets = [];
+let calcUnit = 2;
+let calcAdded = false;
+
+function calcCombo(arr, k) {
+  const out = [];
+  function walk(start, picked) {
+    if (picked.length === k) { out.push(picked.slice()); return; }
+    for (let i = start; i < arr.length; i++) walk(i + 1, picked.concat(arr[i]));
+  }
+  walk(0, []);
+  return out;
+}
+function calcParseList(value, min, max) {
+  const text = String(value || '').replace(/[，、,;；]/g, ' ');
+  const out = new Set();
+  text.split(/\s+/).filter(Boolean).forEach(token => {
+    const m = token.match(/^(\d+)\s*[-~至]\s*(\d+)$/);
+    if (m) {
+      let a = Number(m[1]), b = Number(m[2]);
+      if (a > b) { const t = a; a = b; b = t; }
+      for (let i = a; i <= b; i++) if (i >= min && i <= max) out.add(i);
+    } else if (/^\d+$/.test(token)) {
+      const n = Number(token);
+      if (n >= min && n <= max) out.add(n);
+    }
+  });
+  return [...out].sort((a, b) => a - b);
+}
+function calcZu3(digits) {
+  const out = [];
+  digits.forEach(p => digits.forEach(s => {
+    if (s !== p) out.push([p, p, s].sort().join(''));
+  }));
+  return [...new Set(out)];
+}
+function calcZu6(digits) {
+  return calcCombo(digits, 3).map(c => c.slice().sort().join(''));
+}
+function calcSortTickets(items) {
+  const order = { zhixuan: 0, zu3: 1, zu6: 2 };
+  return items.slice().sort((a, b) => order[a.type] - order[b.type] || a.num.localeCompare(b.num));
+}
+function calcBuildTickets() {
+  const method = $('calcMethod').value;
+  const items = [];
+  const push = (num, type) => items.push({ num, type });
+  const digitsOf = id => parseDigits($(id) ? $(id).value : '');
+  if (method === 'zx_fs') {
+    const b = digitsOf('calcBai'), s = digitsOf('calcShi'), g = digitsOf('calcGe');
+    if (!b.length || !s.length || !g.length) return { error: '百位、十位、个位都要至少选 1 个数字' };
+    b.forEach(x => s.forEach(y => g.forEach(z => push('' + x + y + z, 'zhixuan'))));
+  } else if (method === 'zu6_fs' || method === 'zu3_fs' || method === 'zu_all') {
+    const d = digitsOf('calcDigits');
+    if (method === 'zu6_fs') {
+      if (d.length < 3) return { error: '组六复式至少选 3 个号码' };
+      calcZu6(d).forEach(n => push(n, 'zu6'));
+    } else if (method === 'zu3_fs') {
+      if (d.length < 2) return { error: '组三复式至少选 2 个号码' };
+      calcZu3(d).forEach(n => push(n, 'zu3'));
+    } else {
+      if (d.length < 2) return { error: '组选全包至少选 2 个号码' };
+      calcZu3(d).forEach(n => push(n, 'zu3'));
+      calcZu6(d).forEach(n => push(n, 'zu6'));
+    }
+  } else if (method === 'zu6_dt') {
+    const dan = digitsOf('calcDan');
+    const tuo = digitsOf('calcTuo').filter(x => !dan.includes(x));
+    if (!dan.length) return { error: '请先填胆码' };
+    if (dan.length > 2) return { error: '组六胆拖最多 2 个胆码' };
+    if (dan.length === 1) {
+      if (tuo.length < 2) return { error: '1 个胆码至少需要 2 个拖码' };
+      calcCombo(tuo, 2).forEach(c => push([dan[0], ...c].sort().join(''), 'zu6'));
+    } else {
+      if (!tuo.length) return { error: '2 个胆码至少需要 1 个拖码' };
+      tuo.forEach(t => push([dan[0], dan[1], t].sort().join(''), 'zu6'));
+    }
+  } else if (method === 'zu3_dt') {
+    const dan = digitsOf('calcDan');
+    const tuo = digitsOf('calcTuo').filter(x => !dan.includes(x));
+    if (!dan.length) return { error: '请先填胆码' };
+    if (dan.length > 2) return { error: '组三胆拖最多 2 个胆码' };
+    if (dan.length === 1) {
+      if (!tuo.length) return { error: '1 个胆码至少需要 1 个拖码' };
+      tuo.forEach(t => {
+        push([dan[0], dan[0], t].sort().join(''), 'zu3');
+        push([t, t, dan[0]].sort().join(''), 'zu3');
+      });
+    } else {
+      push([dan[0], dan[0], dan[1]].sort().join(''), 'zu3');
+      push([dan[0], dan[1], dan[1]].sort().join(''), 'zu3');
+    }
+  } else if (method === 'bao_sum' || method === 'bao_span') {
+    const isSum = method === 'bao_sum';
+    const nums = calcParseList($('calcNums').value, 0, isSum ? 27 : 9);
+    if (!nums.length) return { error: isSum ? '请填 0-27 之间的和值' : '请填 0-9 之间的跨度' };
+    const set = new Set(nums);
+    const mode = $('calcMode').value;
+    for (let n = 0; n < 1000; n++) {
+      const a = Math.floor(n / 100), b = Math.floor(n / 10) % 10, c = n % 10;
+      const key = isSum ? a + b + c : Math.max(a, b, c) - Math.min(a, b, c);
+      if (!set.has(key)) continue;
+      const distinct = new Set([a, b, c]).size;
+      if (mode === 'zx') push(String(n).padStart(3, '0'), 'zhixuan');
+      else if (mode === 'zu6' && distinct === 3) push([a, b, c].sort().join(''), 'zu6');
+      else if (mode === 'zu3' && distinct === 2) push([a, b, c].sort().join(''), 'zu3');
+      else if (mode === 'zu_all') {
+        if (distinct === 3) push([a, b, c].sort().join(''), 'zu6');
+        else if (distinct === 2) push([a, b, c].sort().join(''), 'zu3');
+      }
+    }
+  }
+  return { items };
+}
+function calcApplyFilters(items) {
+  const must = parseDigits($('calcMust').value);
+  const avoid = parseDigits($('calcAvoid').value);
+  const seen = new Set();
+  return items.filter(item => {
+    const ds = item.num.split('');
+    if (avoid.some(d => ds.includes(String(d)))) return false;
+    if (must.some(d => !ds.includes(String(d)))) return false;
+    const key = item.type + ':' + item.num;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function calcInputRow(label, id, placeholder) {
+  return '<div class="row"><label>' + label + '</label><input type="text" id="' + id + '" placeholder="' + placeholder + '" /></div>';
+}
+function calcFieldId(key) {
+  return key === 'mode' ? 'calcMode' : 'calc' + key.charAt(0).toUpperCase() + key.slice(1);
+}
+function calcRenderFields() {
+  const method = $('calcMethod').value;
+  const def = CALC_METHODS[method];
+  $('calcFields').innerHTML = def.fields.map(([key, label, ph]) => {
+    if (key === 'mode') {
+      return '<div class="row"><label>展开</label><select id="calcMode">' +
+        '<option value="zx">直选拆注</option>' +
+        '<option value="zu6">组六拆注</option>' +
+        '<option value="zu3">组三拆注</option>' +
+        '<option value="zu_all" selected>组三+组六</option>' +
+        '</select></div>';
+    }
+    return calcInputRow(label, calcFieldId(key), ph);
+  }).join('');
+  $('calcHint').textContent = def.hint;
+  const draft = calcDrafts[method] || {};
+  def.fields.forEach(([key]) => {
+    const id = calcFieldId(key);
+    if (draft[key] !== undefined && $(id)) $(id).value = draft[key];
+  });
+  resetCalcResult();
+}
+function calcSaveDraft(method) {
+  method = method || $('calcMethod').value;
+  const def = CALC_METHODS[method];
+  const draft = {};
+  def.fields.forEach(([key]) => {
+    const id = calcFieldId(key);
+    if ($(id)) draft[key] = $(id).value;
+  });
+  calcDrafts[method] = draft;
+  saveCalcState();
+}
+function saveCalcState() {
+  try {
+    localStorage.setItem(CALC_KEY, JSON.stringify({
+      method: $('calcMethod').value,
+      unit: $('calcUnit').value,
+      must: $('calcMust').value,
+      avoid: $('calcAvoid').value,
+      drafts: calcDrafts
+    }));
+  } catch (e) {}
+}
+function resetCalcResult() {
+  calcTickets = [];
+  calcAdded = false;
+  const add = $('calcAddBtn');
+  if (add) { add.disabled = true; add.textContent = '加入投注记录'; }
+  const box = $('calcResult');
+  if (box) box.innerHTML = '<div class="calc-empty">填好条件后点“计算”，会显示注数、金额和展开号码。</div>';
+}
+function calcRenderResult(items, unit, warning) {
+  const n = items.length;
+  const count = { zhixuan: 0, zu3: 0, zu6: 0 };
+  items.forEach(item => { count[item.type]++; });
+  const preview = items.slice(0, 80).map(item =>
+    '<span class="calc-chip ' + item.type + '">' + item.num + '</span>').join('');
+  let html = '<div class="calc-summary">' +
+    '<div><span>注数</span><b>' + n + '</b></div>' +
+    '<div><span>合计</span><b>' + (n * unit) + ' 元</b></div>' +
+    '<div><span>单注</span><b>' + unit + ' 元</b></div>' +
+  '</div>';
+  const parts = [];
+  if (count.zhixuan) parts.push('直选 ' + count.zhixuan);
+  if (count.zu3) parts.push('组三 ' + count.zu3);
+  if (count.zu6) parts.push('组六 ' + count.zu6);
+  if (parts.length) html += '<div class="calc-breakdown">' + parts.join(' · ') + '</div>';
+  if (warning) html += '<div class="calc-warn">' + warning + '</div>';
+  if (n) {
+    html += '<div class="calc-preview">' + preview + '</div>';
+    if (n > 80) html += '<p class="tip">仅展示前 80 注，共 ' + n + ' 注。</p>';
+  } else {
+    html += '<div class="calc-empty">没有符合条件的号码，放宽条件或去掉定胆/杀号试试。</div>';
+  }
+  $('calcResult').innerHTML = html;
+  const add = $('calcAddBtn');
+  add.disabled = !n || n > CALC_MAX_ADD;
+  add.textContent = '加入投注记录' + (n ? '（' + n + '注）' : '');
+}
+function calcCompute() {
+  calcSaveDraft();
+  const built = calcBuildTickets();
+  if (built.error) {
+    $('calcResult').innerHTML = '<div class="calc-warn">' + built.error + '</div>';
+    $('calcAddBtn').disabled = true;
+    calcTickets = [];
+    return;
+  }
+  const unit = Math.max(1, parseInt($('calcUnit').value, 10) || 2);
+  calcUnit = unit;
+  const items = calcSortTickets(calcApplyFilters(built.items));
+  let warning = '';
+  if (items.length > CALC_MAX_ADD) warning = '注数超过 ' + CALC_MAX_ADD + '，暂时不能一键加入，请先缩窄范围。';
+  calcTickets = items;
+  calcAdded = false;
+  calcRenderResult(items, unit, warning);
+  saveCalcState();
+}
+function calcAddToBets() {
+  if (!calcTickets.length || calcAdded || calcTickets.length > CALC_MAX_ADD) return;
+  const date = $('betDate').value || todayStr();
+  const total = calcTickets.length * calcUnit;
+  if (calcTickets.length > 100 && !confirm('将写入 ' + calcTickets.length + ' 注，共 ' + total + ' 元到 ' + date + '，确定吗？')) return;
+  const bets = getBets();
+  calcTickets.forEach(item => bets.push({ num: item.num, type: item.type, amount: calcUnit, date }));
+  saveBets(bets);
+  renderBets();
+  renderStats();
+  renderDayResult($('drawDate').value || todayStr());
+  calcAdded = true;
+  const add = $('calcAddBtn');
+  add.disabled = true;
+  add.textContent = '已加入 ' + calcTickets.length + ' 注';
+  alert('已加入 ' + calcTickets.length + ' 注，共 ' + total + ' 元\n日期：' + date);
+}
+function initBuyCalc() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(CALC_KEY) || '{}') || {}; } catch (e) {}
+  if (saved.drafts && typeof saved.drafts === 'object') calcDrafts = saved.drafts;
+  if (saved.method && CALC_METHODS[saved.method]) $('calcMethod').value = saved.method;
+  if (saved.unit) $('calcUnit').value = saved.unit;
+  if (saved.must) $('calcMust').value = saved.must;
+  if (saved.avoid) $('calcAvoid').value = saved.avoid;
+  calcRenderFields();
+  let prevMethod = $('calcMethod').value;
+  $('calcMethod').onchange = () => {
+    calcSaveDraft(prevMethod);
+    prevMethod = $('calcMethod').value;
+    calcRenderFields();
+  };
+  $('calcFields').addEventListener('input', () => { calcSaveDraft(); resetCalcResult(); });
+  $('calcFields').addEventListener('change', () => { calcSaveDraft(); resetCalcResult(); });
+  $('calcUnit').addEventListener('input', resetCalcResult);
+  $('calcMust').addEventListener('input', resetCalcResult);
+  $('calcAvoid').addEventListener('input', resetCalcResult);
+  $('calcBtn').onclick = calcCompute;
+  $('calcAddBtn').onclick = calcAddToBets;
+  resetCalcResult();
+}
 
 // === 开奖计算 ===
 function sortStr(s) { return s.split('').sort().join(''); }
@@ -1336,6 +1727,7 @@ document.querySelectorAll('.tab').forEach(t => {
   t.onclick = () => switchView(t.dataset.view);
 });
 
+initBuyCalc();
 loadState();
 $('betDate').value = defaultBetDate();
 $('drawDate').value = todayStr();
